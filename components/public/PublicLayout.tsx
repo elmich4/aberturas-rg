@@ -4,12 +4,14 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 
 const NAV = [
-  { href: '/',             label: 'Inicio'      },
-  { href: '/nosotros',     label: 'Nosotros'    },
-  { href: '/trabajos',     label: 'Trabajos'    },
-  { href: '/blog',         label: 'Novedades'   },
-  { href: '/contacto',     label: 'Contacto'    },
-  { href: '/calculadoras', label: '🧮 Calcular' },
+  { href: '/',             label: 'Inicio'         },
+  { href: '/nosotros',     label: 'Nosotros'       },
+  { href: '/trabajos',     label: 'Trabajos'       },
+  { href: '/blog',         label: 'Novedades'      },
+  { href: '/tienda',       label: '🛍️ Tienda'     },
+  { href: '/contacto',     label: 'Contacto'       },
+  { href: '/calculadoras', label: '🧮 Calcular'    },
+  { href: '/presupuesto',  label: '💰 Presupuesto' },
 ]
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {

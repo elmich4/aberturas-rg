@@ -10,6 +10,7 @@ const MENU = [
   { href: '/admin/blog',     icon: '📝', label: 'Blog'       },
   { href: '/admin/trabajos', icon: '🖼️', label: 'Trabajos'   },
   { href: '/admin/precios',  icon: '💰', label: 'Precios'    },
+  { href: '/admin/tienda',   icon: '🛍️', label: 'Tienda'     },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
