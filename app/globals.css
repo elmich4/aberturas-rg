@@ -1,0 +1,96 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --rg-red: #D62828;
+  --rg-red-dark: #A01E1E;
+  --rg-yellow: #F7B731;
+  --bg: #0f0f0f;
+  --panel: #1a1a1a;
+  --panel2: #222;
+  --border: #2e2e2e;
+  --text: #f0f0f0;
+  --muted: #888;
+  /* Public light theme */
+  --pub-bg: #FAFAF8;
+  --pub-text: #1a1a1a;
+  --pub-muted: #666;
+  --pub-border: #e8e4df;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f0f0f0; }
+::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.anim-fade-up   { animation: fadeUp .6s ease both; }
+.anim-fade-in   { animation: fadeIn .5s ease both; }
+.anim-delay-1   { animation-delay: .1s; }
+.anim-delay-2   { animation-delay: .2s; }
+.anim-delay-3   { animation-delay: .3s; }
+.anim-delay-4   { animation-delay: .4s; }
+
+/* ============================================================
+   RESPONSIVE UTILITIES
+   ============================================================ */
+
+/* Mobile-first grid helpers */
+.grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+}
+.grid-2col-sm {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+.grid-4col {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+}
+.grid-auto {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+.flex-row { display: flex; flex-direction: row; }
+.nav-desktop { display: flex; }
+.nav-mobile { display: none; }
+.hide-mobile { display: block; }
+.hero-stats-card { display: block; }
+
+@media (max-width: 768px) {
+  .grid-2col { grid-template-columns: 1fr !important; gap: 32px !important; }
+  .grid-2col-sm { grid-template-columns: 1fr !important; gap: 16px !important; }
+  .grid-4col { grid-template-columns: 1fr 1fr !important; gap: 24px !important; }
+  .grid-auto { grid-template-columns: 1fr !important; }
+  .nav-desktop { display: none !important; }
+  .nav-mobile { display: flex !important; }
+  .hide-mobile { display: none !important; }
+  .hero-stats-card { display: none !important; }
+  .hero-section { padding: 40px 16px !important; min-height: unset !important; }
+  .section-pad { padding: 48px 16px !important; }
+  .hero-btns { flex-direction: column !important; }
+  .admin-sidebar { width: 60px !important; overflow: hidden; }
+  .admin-sidebar .label { display: none !important; }
+  .admin-sidebar .user-section { display: none !important; }
+  .calc-iframe { height: calc(100vh - 0px) !important; }
+}
+
+@media (max-width: 480px) {
+  .grid-4col { grid-template-columns: 1fr !important; }
+}
