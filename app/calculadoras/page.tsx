@@ -27,22 +27,6 @@ const CALCS = [
     tags: ['Cielorraso', 'Tabique', 'Omega', 'Durlock'],
     color: '#7c3aed',
   },
-  {
-    href: '/presupuesto',
-    icon: '💰',
-    title: 'Presupuesto General',
-    desc: 'Armá un presupuesto combinado con todos los productos. Exportá con marca de agua o enviá por WhatsApp.',
-    tags: ['Multi-producto', 'Exportar PNG', 'WhatsApp', 'Marca de agua'],
-    color: '#059669',
-  },
-  {
-    href: '/mapa',
-    icon: '📍',
-    title: 'Mapa de Fletes',
-    desc: 'Consultá el costo de entrega según tu zona en Montevideo y alrededores.',
-    tags: ['Montevideo', 'Interior', 'Zonas', 'Entrega'],
-    color: '#d97706',
-  },
 ]
 
 export default function CalculadorasPage() {

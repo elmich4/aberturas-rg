@@ -11,7 +11,6 @@ const NAV = [
   { href: '/tienda',       label: '🛍️ Tienda'     },
   { href: '/contacto',     label: 'Contacto'       },
   { href: '/calculadoras', label: '🧮 Calcular'    },
-  { href: '/presupuesto',  label: '💰 Presupuesto' },
 ]
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
