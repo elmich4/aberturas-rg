@@ -1,6 +1,7 @@
 'use client'
 import PublicLayout from '@/components/public/PublicLayout'
 import Link from 'next/link'
+import Resenas from '@/components/Resenas'
 
 const SERVICIOS = [
   { icon: '🪟', title: 'Ventanas & Puertas',  desc: 'Serie 20, Serie 25, Modena, Colonial, Guillotina. Aluminio de alta resistencia con vidrio simple, doble o DVH.', href: '/ventanas' },
@@ -161,6 +162,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ── RESEÑAS ── */}
+      <Resenas />
 
       {/* ── PROCESO ── */}
       <section className="section-pad" style={{ padding: '72px 20px', background: '#fff' }}>
