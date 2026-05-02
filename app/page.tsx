@@ -31,7 +31,7 @@ export default function HomePage() {
     <PublicLayout>
 
       {/* ── HERO ── */}
-      <section className="hero-section" style={{ minHeight: '85vh', display: 'flex', alignItems: 'center', background: 'linear-gradient(135deg,#FAFAF8 0%,#f5f0eb 100%)', position: 'relative', overflow: 'hidden', padding: '48px 20px' }}>
+      <section className="hero-section" style={{ display: 'flex', alignItems: 'center', background: 'linear-gradient(135deg,#FAFAF8 0%,#f5f0eb 100%)', position: 'relative', overflow: 'hidden', padding: '48px 20px' }}>
         <div style={{ position: 'absolute', right: -80, top: -80, width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle,rgba(214,40,40,.07) 0%,transparent 70%)', pointerEvents: 'none' }} />
         <div style={{ maxWidth: 1200, margin: '0 auto', width: '100%' }}>
           <div className="grid-2col">
@@ -88,6 +88,17 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <style jsx>{`
+        .hero-section { min-height: auto; }
+        @media (min-width: 768px) {
+          .hero-section { min-height: 85vh; }
+        }
+        .hero-stats-card { display: none; }
+        @media (min-width: 768px) {
+          .hero-stats-card { display: block !important; }
+        }
+      `}</style>
 
       {/* ── SERVICIOS ── */}
       <section className="section-pad" style={{ padding: '72px 20px', background: '#fff' }}>
