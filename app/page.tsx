@@ -89,17 +89,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      <style jsx>{`
-        .hero-section { min-height: auto; }
-        @media (min-width: 768px) {
-          .hero-section { min-height: 85vh; }
-        }
-        .hero-stats-card { display: none; }
-        @media (min-width: 768px) {
-          .hero-stats-card { display: block !important; }
-        }
-      `}</style>
-
       {/* ── SERVICIOS ── */}
       <section className="section-pad" style={{ padding: '72px 20px', background: '#fff' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>

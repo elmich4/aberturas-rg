@@ -73,6 +73,10 @@ body { margin: 0; }
 .hide-mobile { display: block; }
 .hero-stats-card { display: block; }
 
+@media (min-width: 769px) {
+  .hero-section { min-height: 85vh; }
+}
+
 @media (max-width: 768px) {
   .grid-2col { grid-template-columns: 1fr !important; gap: 32px !important; }
   .grid-2col-sm { grid-template-columns: 1fr !important; gap: 16px !important; }
@@ -89,6 +93,23 @@ body { margin: 0; }
   .admin-sidebar .label { display: none !important; }
   .admin-sidebar .user-section { display: none !important; }
   .calc-iframe { height: calc(100vh - 0px) !important; }
+
+  /* ── Tienda mobile ── */
+  .tienda-body { display: flex !important; flex-direction: column !important; padding: 1rem !important; gap: 1rem !important; }
+  .tienda-sidebar { position: static !important; width: 100% !important; }
+  .sidebar-nav { flex-direction: row !important; flex-wrap: wrap !important; gap: 4px !important; }
+  .cat-btn { width: auto !important; padding: 0.4rem 0.8rem !important; font-size: 0.82rem !important; }
+  .subcats { display: none !important; }
+  .productos-grid { grid-template-columns: 1fr 1fr !important; gap: 0.8rem !important; }
+  .producto-img { height: 120px !important; }
+  .producto-info { padding: 0.7rem !important; }
+  .producto-info h3 { font-size: 0.82rem !important; }
+  .producto-precio { font-size: 0.95rem !important; }
+  .btn-agregar { padding: 0.35rem 0.7rem !important; font-size: 0.78rem !important; }
+
+  /* ── Reseñas mobile ── */
+  .resenas-grid { grid-template-columns: 1fr !important; }
+  .resenas-header { flex-direction: column !important; align-items: flex-start !important; }
 }
 
 @media (max-width: 480px) {
