@@ -4,13 +4,12 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 
 const NAV = [
-  { href: '/',             label: 'Inicio'         },
-  { href: '/nosotros',     label: 'Nosotros'       },
-  { href: '/trabajos',     label: 'Trabajos'       },
-  { href: '/blog',         label: 'Novedades'      },
-  { href: '/tienda',       label: '🛍️ Tienda'     },
-  { href: '/contacto',     label: 'Contacto'       },
-  { href: '/calculadoras', label: '🧮 Calcular'    },
+  { href: '/',         label: 'Inicio'     },
+  { href: '/nosotros', label: 'Nosotros'   },
+  { href: '/trabajos', label: 'Trabajos'   },
+  { href: '/blog',     label: 'Novedades'  },
+  { href: '/tienda',   label: '🛍️ Tienda' },
+  { href: '/contacto', label: 'Contacto'   },
 ]
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
@@ -53,7 +52,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
               097 699 854
             </a>
             <Link href="/calculadoras" style={{ background: '#D62828', color: '#fff', borderRadius: 7, padding: '7px 14px', textDecoration: 'none', fontFamily:"'Barlow Condensed',sans-serif", fontWeight: 700, fontSize: 13, textTransform: 'uppercase', letterSpacing: 1, whiteSpace: 'nowrap' }}>
-              Calcular →
+              Calculadoras →
             </Link>
           </div>
 
@@ -86,7 +85,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             })}
             <Link href="/calculadoras" onClick={() => setMobileOpen(false)}
               style={{ display: 'block', marginTop: 12, background: '#D62828', color: '#fff', borderRadius: 10, padding: '13px 20px', textDecoration: 'none', fontFamily:"'Barlow Condensed',sans-serif", fontWeight: 700, fontSize: 16, textTransform: 'uppercase', letterSpacing: 1, textAlign: 'center' }}>
-              Calcular presupuesto →
+              Calculadoras →
             </Link>
           </div>
         )}

@@ -10,11 +10,9 @@ type Props = {
 }
 
 const CALCS = [
-  { href: '/ventanas',    icon: '🪟', label: 'Ventanas'     },
-  { href: '/cielorraso',  icon: '🏠', label: 'Cielorraso'   },
-  { href: '/yeso',        icon: '🏗️', label: 'Yeso'         },
-  { href: '/presupuesto', icon: '💰', label: 'Presupuesto'  },
-  { href: '/mapa',        icon: '📍', label: 'Mapa fletes'  },
+  { href: '/ventanas',   icon: '🪟', label: 'Ventanas'    },
+  { href: '/cielorraso', icon: '🏠', label: 'Cielorraso'  },
+  { href: '/yeso',       icon: '🏗️', label: 'Yeso'        },
 ]
 
 export default function CalcWrapper({ src, title, icon }: Props) {
