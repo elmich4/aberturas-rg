@@ -2164,5 +2164,33 @@ v_agregarItem();
 })();
 </script>
 
+
+<script>
+// ── postMessage bridge para CalcWrapper ──
+window.addEventListener('message', function(e) {
+  if (e.data === 'rg:getCalcData') {
+    var data = { tipo: 'ventanas', items: [] };
+    try {
+      if (window.v_ultimosGrupos && window.v_ultimosGrupos.length) {
+        var filas = window.v_buildResumenFilas(window.v_ultimosGrupos);
+        var lastMedida = '';
+        filas.forEach(function(f) {
+          var medida = (f.itemPrefix || '') + f.medida;
+          var nombre = f.lineas && f.lineas[0] ? f.lineas[0].texto : '';
+          var extras = (f.lineas || []).slice(1).filter(function(l) {
+            return l.valor !== 'Incluido' && l.valor !== '—';
+          });
+          var desc = nombre + (extras.length ? ' + ' + extras.map(function(l){return l.texto;}).join(' + ') : '');
+          data.items.push({ medida: medida, desc: desc });
+        });
+        if (window.v_ultimosGrupos[0] && window.v_ultimosGrupos[0].cant > 1) {
+          data.cant = window.v_ultimosGrupos[0].cant;
+        }
+      }
+    } catch(err) {}
+    e.source.postMessage({ type: 'rg:calcData', data: data }, '*');
+  }
+});
+</script>
 </body>
 </html>

@@ -1308,5 +1308,20 @@ window.addEventListener('DOMContentLoaded', function() {
 })();
 </script>
 
+
+<script>
+window.addEventListener('message', function(e) {
+  if (e.data === 'rg:getCalcData') {
+    var data = { tipo: 'yeso', items: [] };
+    try {
+      if (window._yLastCalc) {
+        var c = window._yLastCalc;
+        data.items.push({ desc: 'Yeso / Durlock', detalle: (c.largo||'?') + 'm × ' + (c.ancho||'?') + 'm = ' + (c.m2||'?') + ' m²' });
+      }
+    } catch(err) {}
+    e.source.postMessage({ type: 'rg:calcData', data: data }, '*');
+  }
+});
+</script>
 </body>
 </html>
