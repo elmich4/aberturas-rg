@@ -110,6 +110,19 @@ export default function CalcWrapper({ src, title, icon }: Props) {
           display: 'block',
         }}
         allow="clipboard-write"
+        onLoad={(e) => {
+          try {
+            const doc = (e.target as HTMLIFrameElement).contentDocument
+            if (!doc) return
+            const style = doc.createElement('style')
+            // Ocultar header propio del HTML y barra de usuario
+            style.textContent = `
+              #user-bar { display: none !important; }
+              .app-header { display: none !important; }
+            `
+            doc.head.appendChild(style)
+          } catch {}
+        }}
       />
     </div>
   )
