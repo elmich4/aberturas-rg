@@ -47,8 +47,8 @@ export default function HomePage() {
                 Ventanas, puertas, rejas y cielorrasos a medida. Instalación profesional en todo Uruguay con más de 15 años de experiencia.
               </p>
               <div className="hero-btns" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                <Link href="/calculadoras" style={{ background: '#D62828', color: '#fff', borderRadius: 10, padding: '14px 26px', textDecoration: 'none', fontFamily:"'Barlow Condensed',sans-serif", fontWeight: 700, fontSize: 16, textTransform: 'uppercase', letterSpacing: 1, boxShadow: '0 4px 16px rgba(214,40,40,.35)' }}>
-                  Calcular mi presupuesto →
+                <Link href="/presupuesto" style={{ background: '#D62828', color: '#fff', borderRadius: 10, padding: '14px 26px', textDecoration: 'none', fontFamily:"'Barlow Condensed',sans-serif", fontWeight: 700, fontSize: 16, textTransform: 'uppercase', letterSpacing: 1, boxShadow: '0 4px 16px rgba(214,40,40,.35)' }}>
+                  Pedir presupuesto →
                 </Link>
                 <a href="https://wa.me/59897699854" target="_blank" rel="noopener noreferrer"
                   style={{ background: 'transparent', color: '#1a1a1a', border: '2px solid #1a1a1a', borderRadius: 10, padding: '14px 26px', textDecoration: 'none', fontFamily:"'Barlow Condensed',sans-serif", fontWeight: 700, fontSize: 16, textTransform: 'uppercase', letterSpacing: 1 }}>
@@ -113,23 +113,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── CTA OSCURO ── */}
-      <section className="section-pad" style={{ padding: '72px 20px', background: 'linear-gradient(135deg,#1a1a1a 0%,#2a1a1a 100%)', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ maxWidth: 800, margin: '0 auto', textAlign: 'center', position: 'relative' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 3, color: '#F7B731', marginBottom: 14 }}>Herramienta gratuita</div>
-          <h2 style={{ fontFamily:"'Playfair Display',serif", fontSize: 'clamp(28px,4vw,50px)', fontWeight: 900, color: '#fff', margin: '0 0 18px', lineHeight: 1.1 }}>
-            Calculá tu presupuesto<br /><em style={{ color: '#F7B731' }}>en 2 minutos</em>
-          </h2>
-          <p style={{ fontSize: 16, color: '#aaa', lineHeight: 1.7, marginBottom: 32, maxWidth: 480, margin: '0 auto 32px' }}>
-            Seleccioná tus medidas, elegí los materiales y recibí el precio al instante. Sin visitas, sin esperas.
-          </p>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-            {[['🪟 Ventanas','/ventanas'],['🏠 Cielorraso','/cielorraso'],['🧱 Yeso','/yeso'],['📋 Presupuesto','/presupuesto']].map(([l,h])=>(
-              <Link key={h} href={h} style={{ background: 'rgba(255,255,255,.08)', color: '#fff', border: '1px solid rgba(255,255,255,.15)', borderRadius: 8, padding: '10px 16px', textDecoration: 'none', fontSize: 14, fontWeight: 500 }}>{l}</Link>
-            ))}
-          </div>
-        </div>
-      </section>
+
 
       {/* ── POR QUÉ ── */}
       <section className="section-pad" style={{ padding: '72px 20px', background: '#FAFAF8' }}>
