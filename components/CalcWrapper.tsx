@@ -250,4 +250,49 @@ export default function CalcWrapper({ src, title, icon }: Props) {
       )}
     </div>
   )
-}
+}          onClick={() => {
+            const iframe = document.querySelector('iframe') as HTMLIFrameElement
+            const iframeWin = iframe?.contentWindow as any
+
+            const sendWA = (texto: string) => {
+              let msg = '¡Hola! Quisiera consultar precio para lo siguiente:\n\n'
+              if (texto && texto.trim()) {
+                msg += '🪟 *Ventanas:*\n' + texto
+              } else {
+                msg += '(No encontré el cálculo — describí lo que necesitás)\n'
+              }
+              msg += '\n¿Me pueden dar un presupuesto? Muchas gracias.'
+              window.open(`https://wa.me/59897699854?text=${encodeURIComponent(msg)}`, '_blank')
+            }
+
+            // Intento 1: acceso directo (mismo origen)
+            try {
+              if (iframeWin?.rgGetCalcData) {
+                const txt = iframeWin.rgGetCalcData()
+                sendWA(txt)
+                return
+              }
+            } catch {}
+
+            // Intento 2: postMessage con timeout
+            if (!iframeWin) { sendWA(''); return }
+
+            let responded = false
+            const handler = (e: MessageEvent) => {
+              if (e.data?.type !== 'rg:calcData') return
+              responded = true
+              window.removeEventListener('message', handler)
+              sendWA(e.data.texto || '')
+            }
+            window.addEventListener('message', handler)
+
+            setTimeout(() => {
+              if (!responded) {
+                window.removeEventListener('message', handler)
+                sendWA('')
+              }
+            }, 2000)
+
+            try { iframeWin.postMessage('rg:getCalcData', '*') } catch {}
+          }}
+          
