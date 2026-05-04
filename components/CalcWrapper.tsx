@@ -79,12 +79,12 @@ export default function CalcWrapper({ src, title, icon }: Props) {
 
         {/* Right: site link + WA */}
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
-          <Link href="/calculadoras" style={{
+          <Link href="/" style={{
             fontSize: 11, color: '#555', textDecoration: 'none',
             padding: '4px 8px', border: '1px solid #2a2a2a', borderRadius: 6,
             whiteSpace: 'nowrap',
           }}>
-            ← Menú
+            ← Inicio
           </Link>
           <a href="https://wa.me/59897699854" target="_blank" rel="noopener noreferrer" style={{
             width: 30, height: 30, borderRadius: '50%',
@@ -115,7 +115,6 @@ export default function CalcWrapper({ src, title, icon }: Props) {
             const doc = (e.target as HTMLIFrameElement).contentDocument
             if (!doc) return
             const style = doc.createElement('style')
-            // Ocultar header propio del HTML y barra de usuario
             style.textContent = `
               #user-bar { display: none !important; }
               .app-header { display: none !important; }
