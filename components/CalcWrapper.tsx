@@ -31,10 +31,48 @@ export default function CalcWrapper({ src, title, icon }: Props) {
       const doc = iframe.contentDocument
       if (!doc) return
       const style = doc.createElement('style')
-      style.textContent = `
-        #user-bar { display: none !important; }
-        .app-header { display: none !important; }
-      `
+
+      if (!vendedor) {
+        // Modo cliente: ocultar todos los precios y totales
+        style.textContent = `
+          #user-bar { display: none !important; }
+          .app-header { display: none !important; }
+
+          /* Ocultar precios en resumen */
+          .resumen-card-total { display: none !important; }
+          .rct-val { display: none !important; }
+          .simp-val { visibility: hidden !important; }
+          .simp-fila .simp-val { display: none !important; }
+
+          /* Ocultar totales y valores en cards */
+          .rct-adj-wrap { display: none !important; }
+          input[type=number].precio-inp { display: none !important; }
+
+          /* Ocultar columnas de precio en tablas de ítems adicionales */
+          .xtra-row input[type=number]:last-of-type { display: none !important; }
+
+          /* Ocultar botones de exportar imagen/PDF (solo vendedor) */
+          button[onclick*="copiarImagen"],
+          button[onclick*="exportarPDF"],
+          button[onclick*="guardar"],
+          button[onclick*="historial"],
+          .btn-copiar-img, .btn-exportar-pdf, .btn-guardar, .btn-historial,
+          [class*="copiar-imagen"], [class*="exportar-pdf"] { display: none !important; }
+
+          /* Reemplazar valores de precio con texto */
+          .vista-interna-toggle { display: none !important; }
+
+          /* Ocultar el botón WA interno — usamos el nuestro */
+          button[onclick*="copiarWA"], button[onclick*="whatsapp"],
+          .btn-wa, .btn-wp, [class*="whatsapp"], [class*="-wa"] { display: none !important; }
+        `
+      } else {
+        // Modo vendedor: solo ocultar header propio
+        style.textContent = `
+          #user-bar { display: none !important; }
+          .app-header { display: none !important; }
+        `
+      }
       doc.head.appendChild(style)
     } catch {}
   }
@@ -146,6 +184,48 @@ export default function CalcWrapper({ src, title, icon }: Props) {
       />
 
       {loginModal && <VendedorLoginModal onClose={() => setLoginModal(false)} />}
-    </div>
+
+      {/* Botón WA flotante — solo modo cliente */}
+      {!vendedor && (
+        <a
+          href={`https://wa.me/59897699854?text=${encodeURIComponent('¡Hola! Estoy usando la calculadora de ventanas y quisiera que me den un presupuesto. ¿Me pueden ayudar?')}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+            zIndex: 100,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            background: '#25D366',
+            color: '#fff',
+            textDecoration: 'none',
+            padding: '12px 20px',
+            borderRadius: 50,
+            fontWeight: 700,
+            fontSize: 14,
+            boxShadow: '0 4px 20px rgba(37,211,102,.5)',
+            transition: 'transform .15s, box-shadow .15s',
+          }}
+          onMouseEnter={e => {
+            const el = e.currentTarget as HTMLAnchorElement
+            el.style.transform = 'translateY(-2px)'
+            el.style.boxShadow = '0 8px 28px rgba(37,211,102,.6)'
+          }}
+          onMouseLeave={e => {
+            const el = e.currentTarget as HTMLAnchorElement
+            el.style.transform = 'translateY(0)'
+            el.style.boxShadow = '0 4px 20px rgba(37,211,102,.5)'
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347"/>
+          </svg>
+          Solicitar presupuesto
+        </a>
+      )}
   )
 }
+    </div>
