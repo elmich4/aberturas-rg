@@ -2169,27 +2169,31 @@ v_agregarItem();
 // ── postMessage bridge para CalcWrapper ──
 window.addEventListener('message', function(e) {
   if (e.data !== 'rg:getCalcData') return;
-  var data = { tipo: 'ventanas', items: [] };
+  var txt = '';
   try {
     if (window.v_ultimosGrupos && window.v_ultimosGrupos.length) {
-      var filas = window.v_buildResumenFilas(window.v_ultimosGrupos);
-      var lastMedida = '';
-      filas.forEach(function(f) {
-        var medida = (f.itemPrefix || '') + (f.medida || '');
-        var nombre = (f.lineas && f.lineas[0]) ? f.lineas[0].texto : '';
-        var extras = (f.lineas || []).slice(1).filter(function(l) {
-          return l.valor !== 'Incluido' && l.valor !== '—';
-        });
-        var desc = nombre + (extras.length ? ' + ' + extras.map(function(l){return l.texto;}).join(' + ') : '');
-        data.items.push({ medida: medida, desc: desc });
-      });
-      if (window.v_ultimosGrupos[0] && window.v_ultimosGrupos[0].cant > 1) {
-        data.cant = window.v_ultimosGrupos[0].cant;
+      var filasWA = window.v_buildResumenFilas(window.v_ultimosGrupos);
+      if (window.v_ultimosGrupos.length === 1) {
+        txt += window.v_fmtM(window.v_ultimosGrupos[0].ancho) + ' de ancho x ' + window.v_fmtM(window.v_ultimosGrupos[0].alto) + ' de alto\n';
       }
+      txt += '─────────────────\n';
+      var lastMedida = '';
+      filasWA.forEach(function(f) {
+        var medidaKey = (f.itemPrefix||'') + f.medida;
+        if (medidaKey !== lastMedida) {
+          if (lastMedida) txt += '\n';
+          txt += '📐 ' + medidaKey + '\n';
+          lastMedida = medidaKey;
+        }
+        var nombre = f.lineas && f.lineas.length > 0 ? f.lineas[0].texto : '';
+        var extras = f.lineas.slice(1).filter(function(l){ return l.valor !== 'Incluido' && l.valor !== '—'; });
+        txt += '• ' + nombre;
+        if (extras.length > 0) txt += ' + ' + extras.map(function(l){ return l.texto; }).join(' + ');
+        txt += '\n';
+      });
     }
-  } catch(err) { data.error = err.toString(); }
-  // Usar window.parent en lugar de e.source para mayor compatibilidad
-  window.parent.postMessage({ type: 'rg:calcData', data: data }, '*');
+  } catch(err) { txt = ''; }
+  window.parent.postMessage({ type: 'rg:calcData', texto: txt }, '*');
 });
 </script>
 </body>

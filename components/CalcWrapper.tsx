@@ -201,27 +201,13 @@ export default function CalcWrapper({ src, title, icon }: Props) {
               window.removeEventListener('message', handler)
               clearTimeout(timeout)
 
-              const d = e.data.data
+              const texto = e.data.texto || ''
               let msg = '¡Hola! Quisiera consultar precio para lo siguiente:\n\n'
-
-              if (d.items?.length) {
-                const emoji = d.tipo === 'ventanas' ? '🪟' : d.tipo === 'cielorraso' ? '🏠' : '🏗️'
-                const label = d.tipo === 'ventanas' ? 'Ventanas' : d.tipo === 'cielorraso' ? 'Cielorraso PVC' : 'Yeso / Durlock'
-                msg += `${emoji} *${label}:*\n`
-                let lastMedida = ''
-                d.items.forEach((item: any) => {
-                  if (item.medida && item.medida !== lastMedida) {
-                    msg += `📐 ${item.medida}\n`
-                    lastMedida = item.medida
-                  }
-                  if (item.desc) msg += `• ${item.desc}\n`
-                  if (item.detalle) msg += `  ${item.detalle}\n`
-                })
-                if (d.cant > 1) msg += `Cantidad: ${d.cant} unidades\n`
+              if (texto) {
+                msg += '🪟 *Ventanas:*\n' + texto
               } else {
-                msg += '(Sin datos calculados aún)\n'
+                msg += '(Calculá tu ventana primero y luego tocá este botón)\n'
               }
-
               msg += '\n¿Me pueden dar un presupuesto? Muchas gracias.'
               window.open(`https://wa.me/59897699854?text=${encodeURIComponent(msg)}`, '_blank')
             }
