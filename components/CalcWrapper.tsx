@@ -228,12 +228,21 @@ export default function CalcWrapper({ src, title, icon }: Props) {
 
             window.addEventListener('message', handler)
             // Timeout por si el iframe no responde
+            // Timeout de 3 segundos
             const timeout = setTimeout(() => {
               window.removeEventListener('message', handler)
-              window.open(`https://wa.me/59897699854?text=${encodeURIComponent('¡Hola! Quisiera consultar un presupuesto. ¿Me pueden ayudar?')}`, '_blank')
-            }, 1500)
+              // Fallback: abrir WA con mensaje genérico
+              window.open(`https://wa.me/59897699854?text=${encodeURIComponent('¡Hola! Quisiera consultar un presupuesto de ventanas/aberturas. ¿Me pueden ayudar?')}`, '_blank')
+            }, 3000)
 
-            iframe.contentWindow.postMessage('rg:getCalcData', '*')
+            // Enviar al iframe - usar tanto contentWindow como parent
+            try {
+              iframe.contentWindow.postMessage('rg:getCalcData', '*')
+            } catch(err) {
+              clearTimeout(timeout)
+              window.removeEventListener('message', handler)
+              window.open(`https://wa.me/59897699854?text=${encodeURIComponent('¡Hola! Quisiera consultar un presupuesto. ¿Me pueden ayudar?')}`, '_blank')
+            }
           }}
           style={{
             position: 'fixed', bottom: 24, right: 24, zIndex: 100,
