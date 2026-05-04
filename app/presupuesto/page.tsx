@@ -238,14 +238,18 @@ export default function PresupuestoPage() {
     <PublicLayout>
       <div className="pres-wrapper">
         <div className="pres-hero">
-          <div className="pres-hero-inner">
-            <h1>💰 {esVendedor ? `Panel Vendedor — ${nombrePerfil}` : 'Armá tu consulta'}</h1>
-            <p>{esVendedor ? 'Modo vendedor · Precios visibles · Exportar con marca de agua' : 'Seleccioná los productos que necesitás y te enviamos el presupuesto por WhatsApp'}</p>
+          <div className="pres-hero-topbar">
+            <div className="pres-hero-inner">
+              <h1>💰 {esVendedor ? `Panel Vendedor — ${nombrePerfil}` : 'Armá tu consulta'}</h1>
+              <p>{esVendedor ? 'Modo vendedor · Precios visibles · Exportar con marca de agua' : 'Seleccioná los productos que necesitás y te enviamos el presupuesto por WhatsApp'}</p>
+            </div>
+            <div className="pres-hero-actions">
+              {!esVendedor
+                ? <button className="btn-login-vendedor" onClick={() => setLoginModal(true)}>🔑 Vendedor</button>
+                : <button className="btn-logout-vendedor" onClick={() => setVendedor(null)}>↩ Salir</button>
+              }
+            </div>
           </div>
-          {!esVendedor
-            ? <button className="btn-login-vendedor" onClick={() => setLoginModal(true)} title="Acceso vendedor">🔑</button>
-            : <button className="btn-logout-vendedor" onClick={() => setVendedor(null)}>Salir ×</button>
-          }
         </div>
 
         <div className="pres-body">
@@ -374,14 +378,17 @@ export default function PresupuestoPage() {
 
       <style jsx>{`
         .pres-wrapper { min-height: 100vh; background: #f8f7f4; }
-        .pres-hero { background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); border-bottom: 3px solid #D62828; padding: 2.5rem 1.5rem 2rem; position: relative; }
-        .pres-hero-inner { max-width: 1200px; margin: 0 auto; }
+        .pres-hero { background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); border-bottom: 3px solid #D62828; padding: 1.5rem 1.5rem; }
+        
         .pres-hero h1 { font-family: 'Playfair Display', Georgia, serif; font-size: clamp(1.6rem, 4vw, 2.5rem); color: #fff; margin: 0 0 0.4rem; }
         .pres-hero p { color: #aaa; font-size: 0.9rem; margin: 0; }
-        .btn-login-vendedor { position: absolute; bottom: 1rem; right: 1.5rem; background: transparent; border: none; font-size: 1rem; cursor: pointer; opacity: 0.2; transition: opacity 0.2s; padding: 4px; }
-        .btn-login-vendedor:hover { opacity: 1; }
-        .btn-logout-vendedor { position: absolute; bottom: 1rem; right: 1.5rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #aaa; font-size: 0.78rem; cursor: pointer; padding: 4px 10px; border-radius: 6px; transition: all 0.15s; }
-        .btn-logout-vendedor:hover { background: rgba(214,40,40,0.3); color: #fff; }
+        .pres-hero-topbar { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+        .pres-hero-inner { flex: 1; }
+        .pres-hero-actions { flex-shrink: 0; }
+        .btn-login-vendedor { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.7); font-size: 0.82rem; font-weight: 600; cursor: pointer; padding: 7px 14px; border-radius: 8px; transition: all 0.15s; white-space: nowrap; }
+        .btn-login-vendedor:hover { background: rgba(255,255,255,0.15); color: #fff; border-color: rgba(255,255,255,0.4); }
+        .btn-logout-vendedor { background: rgba(214,40,40,0.2); border: 1px solid rgba(214,40,40,0.4); color: #ff8888; font-size: 0.82rem; font-weight: 600; cursor: pointer; padding: 7px 14px; border-radius: 8px; transition: all 0.15s; white-space: nowrap; }
+        .btn-logout-vendedor:hover { background: rgba(214,40,40,0.35); color: #fff; }
         .pres-body { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; display: grid; grid-template-columns: 280px 1fr; gap: 1.5rem; }
         @media (max-width: 768px) { .pres-body { grid-template-columns: 1fr; } }
         .pres-sidebar { display: flex; flex-direction: column; gap: 0.8rem; max-height: calc(100vh - 120px); overflow-y: auto; position: sticky; top: 80px; }
