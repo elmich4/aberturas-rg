@@ -1,32 +1,63 @@
 'use client'
+import { useEffect, useState } from 'react'
 import PublicLayout from '@/components/public/PublicLayout'
 import Link from 'next/link'
 import Resenas from '@/components/Resenas'
+import { supabase } from '@/lib/supabase'
 
 const SERVICIOS = [
-  { icon: '🪟', title: 'Ventanas & Puertas',  desc: 'Serie 20, Serie 25, Modena, Colonial, Guillotina. Aluminio de alta resistencia con vidrio simple, doble o DVH.', href: '/ventanas' },
-  { icon: '🏠', title: 'Cielorraso PVC',       desc: 'Tablillas de 6 a 10mm, con o sin aislación. Instalación prolija y duradera para cualquier ambiente.', href: '/cielorraso' },
-  { icon: '🧱', title: 'Yeso / Durlock',       desc: 'Cielorrasos y tabiques de placa. Terminación perfecta, aislación acústica y térmica garantizada.', href: '/yeso' },
-  { icon: '🔒', title: 'Rejas & Seguridad',    desc: 'Rejas fijas y puertas reja en varillas de 12mm y 16mm. Protección sin sacrificar el diseño.', href: '/ventanas' },
-  { icon: '🎨', title: 'Persianas',             desc: 'PVC blanco, aluminio en varios colores, imitación madera. Enrollables y de accionamiento manual.', href: '/ventanas' },
+  { icon: '🪟', title: 'Ventanas & Puertas',  desc: 'Serie 20, Serie 25, Modena, Colonial, Guillotina. Aluminio de alta resistencia con vidrio simple, doble o DVH.', href: '/contacto' },
+  { icon: '🏠', title: 'Cielorraso PVC',       desc: 'Tablillas de 6 a 10mm, con o sin aislación. Instalación prolija y duradera para cualquier ambiente.', href: '/contacto' },
+  { icon: '🧱', title: 'Yeso / Durlock',       desc: 'Cielorrasos y tabiques de placa. Terminación perfecta, aislación acústica y térmica garantizada.', href: '/contacto' },
+  { icon: '🔒', title: 'Rejas & Seguridad',    desc: 'Rejas fijas y puertas reja en varillas de 12mm y 16mm. Protección sin sacrificar el diseño.', href: '/contacto' },
+  { icon: '🎨', title: 'Persianas',             desc: 'PVC blanco, aluminio en varios colores, imitación madera. Enrollables y de accionamiento manual.', href: '/contacto' },
   { icon: '📐', title: 'Medida a pedido',       desc: 'Cada abertura se fabrica a la medida exacta de tu vano. Sin compromisos ni adaptaciones.', href: '/contacto' },
-]
-
-const STATS = [
-  { num: '15+',   label: 'Años de experiencia'      },
-  { num: '2000+', label: 'Instalaciones realizadas'  },
-  { num: '100%',  label: 'Medida a pedido'           },
-  { num: 'UY',    label: 'Cobertura nacional'        },
 ]
 
 const PORQUES = [
   { title: 'Precio justo',       desc: 'Sin intermediarios. Fabricamos y colocamos nosotros mismos.' },
   { title: 'Garantía escrita',   desc: 'Si algo falla, volvemos sin costo adicional.' },
-  { title: 'Presupuesto online', desc: 'Calculá el costo en minutos, sin esperar una visita.' },
+  { title: 'Presupuesto online', desc: 'Consultá el costo por WhatsApp, sin esperar una visita.' },
   { title: 'Cobertura total',    desc: 'Instalamos en todo Uruguay. Coordinamos la logística.' },
 ]
 
+// Defaults si Supabase no tiene datos aún
+const DEFAULTS: Record<string, string> = {
+  'hero__badge':         'Aberturas de aluminio y PVC',
+  'hero__titulo_linea1': 'Tu hogar,',
+  'hero__titulo_linea2': 'bien cerrado.',
+  'hero__subtitulo':     'Ventanas, puertas, rejas y cielorrasos a medida. Instalación profesional en todo Uruguay con más de 15 años de experiencia.',
+  'stats__stat1_num':    '15+',
+  'stats__stat1_label':  'Años de experiencia',
+  'stats__stat2_num':    '2000+',
+  'stats__stat2_label':  'Instalaciones realizadas',
+  'stats__stat3_num':    '100%',
+  'stats__stat3_label':  'Medida a pedido',
+  'stats__stat4_num':    'UY',
+  'stats__stat4_label':  'Cobertura nacional',
+}
+
 export default function HomePage() {
+  const [content, setContent] = useState<Record<string, string>>(DEFAULTS)
+
+  useEffect(() => {
+    supabase.from('contenido').select('seccion,clave,valor').then(({ data }) => {
+      if (!data?.length) return
+      const map: Record<string, string> = { ...DEFAULTS }
+      data.forEach((r: any) => { map[`${r.seccion}__${r.clave}`] = r.valor })
+      setContent(map)
+    })
+  }, [])
+
+  const c = (key: string) => content[key] || DEFAULTS[key] || ''
+
+  const STATS = [
+    { num: c('stats__stat1_num'), label: c('stats__stat1_label') },
+    { num: c('stats__stat2_num'), label: c('stats__stat2_label') },
+    { num: c('stats__stat3_num'), label: c('stats__stat3_label') },
+    { num: c('stats__stat4_num'), label: c('stats__stat4_label') },
+  ]
+
   return (
     <PublicLayout>
 
@@ -35,16 +66,16 @@ export default function HomePage() {
         <div style={{ position: 'absolute', right: -80, top: -80, width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle,rgba(214,40,40,.07) 0%,transparent 70%)', pointerEvents: 'none' }} />
         <div style={{ maxWidth: 1200, margin: '0 auto', width: '100%' }}>
           <div className="grid-2col">
-            {/* Text */}
             <div>
               <div style={{ display: 'inline-block', background: 'rgba(214,40,40,.08)', color: '#D62828', borderRadius: 4, padding: '4px 12px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 20, border: '1px solid rgba(214,40,40,.15)' }}>
-                Aberturas de aluminio y PVC
+                {c('hero__badge')}
               </div>
               <h1 style={{ fontFamily:"'Playfair Display',serif", fontSize: 'clamp(38px,5vw,66px)', fontWeight: 900, lineHeight: 1.08, color: '#1a1a1a', margin: '0 0 20px' }}>
-                Tu hogar,<br /><em style={{ color: '#D62828', fontStyle: 'italic' }}>bien cerrado.</em>
+                {c('hero__titulo_linea1')}<br />
+                <em style={{ color: '#D62828', fontStyle: 'italic' }}>{c('hero__titulo_linea2')}</em>
               </h1>
               <p style={{ fontSize: 'clamp(15px,2vw,18px)', lineHeight: 1.75, color: '#555', maxWidth: 460, margin: '0 0 32px' }}>
-                Ventanas, puertas, rejas y cielorrasos a medida. Instalación profesional en todo Uruguay con más de 15 años de experiencia.
+                {c('hero__subtitulo')}
               </p>
               <div className="hero-btns" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 <Link href="/presupuesto" style={{ background: '#D62828', color: '#fff', borderRadius: 10, padding: '14px 26px', textDecoration: 'none', fontFamily:"'Barlow Condensed',sans-serif", fontWeight: 700, fontSize: 16, textTransform: 'uppercase', letterSpacing: 1, boxShadow: '0 4px 16px rgba(214,40,40,.35)' }}>
@@ -57,7 +88,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Stats card — hidden on mobile */}
+            {/* Stats card — oculta en mobile */}
             <div className="hero-stats-card" style={{ background: '#fff', borderRadius: 20, boxShadow: '0 20px 60px rgba(0,0,0,.1)', padding: 40, border: '1px solid #f0ebe4' }}>
               <div className="grid-2col-sm">
                 {STATS.map(s => (
@@ -106,14 +137,12 @@ export default function HomePage() {
                 <div style={{ fontSize: 34, marginBottom: 14 }}>{s.icon}</div>
                 <div style={{ fontFamily:"'Playfair Display',serif", fontSize: 19, fontWeight: 700, color: '#1a1a1a', marginBottom: 8 }}>{s.title}</div>
                 <div style={{ fontSize: 14, color: '#777', lineHeight: 1.7, marginBottom: 12 }}>{s.desc}</div>
-                <div style={{ fontSize: 13, color: '#D62828', fontWeight: 600 }}>Ver precios →</div>
+                <div style={{ fontSize: 13, color: '#D62828', fontWeight: 600 }}>Ver más →</div>
               </Link>
             ))}
           </div>
         </div>
       </section>
-
-
 
       {/* ── POR QUÉ ── */}
       <section className="section-pad" style={{ padding: '72px 20px', background: '#FAFAF8' }}>
@@ -157,8 +186,8 @@ export default function HomePage() {
           <h2 style={{ fontFamily:"'Playfair Display',serif", fontSize: 'clamp(26px,3.5vw,42px)', fontWeight: 700, color: '#1a1a1a', margin: '0 0 48px' }}>Del presupuesto a la instalación</h2>
           <div className="grid-4col" style={{ position: 'relative' }}>
             {[
-              { num: '01', title: 'Calculás', desc: 'Precio al instante en nuestra calculadora' },
-              { num: '02', title: 'Consultás', desc: 'Confirmás por WhatsApp' },
+              { num: '01', title: 'Consultás', desc: 'Mandanos un mensaje por WhatsApp' },
+              { num: '02', title: 'Cotizamos', desc: 'Te respondemos con precios al instante' },
               { num: '03', title: 'Fabricamos', desc: 'A medida exacta en nuestro taller' },
               { num: '04', title: 'Instalamos', desc: 'Coordinamos día y horario' },
             ].map(paso => (
