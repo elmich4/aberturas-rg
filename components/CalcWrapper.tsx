@@ -226,6 +226,6 @@ export default function CalcWrapper({ src, title, icon }: Props) {
           Solicitar presupuesto
         </a>
       )}
+    </div>
   )
 }
-    </div>
