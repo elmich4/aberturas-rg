@@ -1,9 +1,10 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useVendedor } from '@/lib/vendedor-auth'
 import VendedorLoginModal from '@/components/VendedorLoginModal'
+import { supabase } from '@/lib/supabase'
 
 type Props = { src: string; title: string; icon: string }
 
@@ -21,12 +22,101 @@ export default function CalcWrapper({ src, title, icon }: Props) {
   const pathname = usePathname()
   const { vendedor, logout } = useVendedor()
   const [loginModal, setLoginModal] = useState(false)
+  const [pricesLoaded, setPricesLoaded] = useState(false)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
 
   const iframeSrc = vendedor
     ? `${src}?session=vendedor&nombre=${encodeURIComponent(vendedor.nombre)}&tel=${encodeURIComponent(vendedor.telefono || '097699854')}`
     : src
 
   const CALCS = [...CALCS_PUBLICAS, ...(vendedor ? CALCS_VENDEDOR : [])]
+
+  // ── Cargar precios desde Supabase ──────────────────────────────────────
+  const buildPricePayload = async (perfilId?: string) => {
+    // Cargar productos activos
+    const { data: prods } = await supabase
+      .from('precios_calc')
+      .select('*')
+      .eq('activo', true)
+      .order('orden')
+
+    if (!prods?.length) return null
+
+    // Cargar ajustes de perfil si hay perfilId
+    let ppMap: Record<string, { precio_override: number | null; pct_ajuste: number }> = {}
+    if (perfilId) {
+      const { data: pp } = await supabase
+        .from('precios_perfil')
+        .select('*')
+        .eq('perfil_id', perfilId)
+      pp?.forEach((p: any) => { ppMap[p.producto_id] = p })
+    }
+
+    // Cargar perfiles para el selector de vendedor
+    const { data: perfiles } = await supabase
+      .from('perfiles_precio')
+      .select('*')
+      .eq('activo', true)
+      .order('orden')
+
+    // Función para obtener precio efectivo
+    const getPrice = (prod: any) => {
+      const pp = ppMap[prod.id]
+      if (!pp) return prod.precio
+      if (pp.precio_override !== null && pp.precio_override !== undefined) return pp.precio_override
+      return Math.round(prod.precio * (1 + (pp.pct_ajuste || 0) / 100))
+    }
+
+    // Construir tablas de medidas estándar
+    const bycat = (cat: string) => prods.filter((p: any) => p.calculadora === cat)
+
+    const toEst = (cat: string) =>
+      bycat(cat)
+        .filter((p: any) => p.ancho && p.alto)
+        .map((p: any) => ({ a: p.ancho, h: p.alto, p: getPrice(p), n: p.descripcion || '' }))
+
+    // Precios de reja, persiana, mosquitero
+    const reja12 = bycat('reja').find((p: any) => p.clave?.includes('12'))
+    const reja16 = bycat('reja').find((p: any) => p.clave?.includes('16'))
+    const persS = bycat('persiana')
+    const mosqS = bycat('mosquitero')
+
+    const payload: any = {
+      est_ventana_s20:   toEst('ventana_s20'),
+      est_ventana_s25:   toEst('ventana_s25'),
+      est_monoblock_s20: toEst('monoblock_s20'),
+      est_monoblock_s25: toEst('monoblock_s25'),
+      reja_12mm: reja12 ? getPrice(reja12) : 2500,
+      reja_16mm: reja16 ? getPrice(reja16) : 3500,
+      m_s20: mosqS.find((p: any) => p.clave?.includes('S20')) ? getPrice(mosqS.find((p: any) => p.clave?.includes('S20'))) : 1100,
+      m_s25: mosqS.find((p: any) => p.clave?.includes('S25')) ? getPrice(mosqS.find((p: any) => p.clave?.includes('S25'))) : 1650,
+      p_pvc: persS.find((p: any) => p.clave?.toLowerCase().includes('pvc')) ? getPrice(persS.find((p: any) => p.clave?.toLowerCase().includes('pvc'))) : 4200,
+      p_alb: persS.find((p: any) => p.clave?.toLowerCase().includes('std')) ? getPrice(persS.find((p: any) => p.clave?.toLowerCase().includes('std'))) : 4900,
+      p_alm: persS.find((p: any) => p.clave?.toLowerCase().includes('laminado')) ? getPrice(persS.find((p: any) => p.clave?.toLowerCase().includes('laminado'))) : 6400,
+      p_imm: persS.find((p: any) => p.clave?.toLowerCase().includes('madera')) ? getPrice(persS.find((p: any) => p.clave?.toLowerCase().includes('madera'))) : 8900,
+    }
+
+    // Agregar perfiles para selector de vendedor
+    if (perfiles?.length) {
+      payload.perfiles = perfiles.map((p: any) => ({
+        nombre: p.nombre,
+        telefono: vendedor?.telefono || '097 699 854',
+        perfil_id: p.id,
+      }))
+    }
+
+    return payload
+  }
+
+  // ── Enviar precios al iframe ──────────────────────────────────────────
+  const sendPrices = async (iframe: HTMLIFrameElement, perfilId?: string) => {
+    const payload = await buildPricePayload(perfilId)
+    if (!payload) return
+    try {
+      iframe.contentWindow?.postMessage({ type: 'rg:setPrices', ...payload }, '*')
+      setPricesLoaded(true)
+    } catch {}
+  }
 
   const injectCSS = (iframe: HTMLIFrameElement) => {
     try {
@@ -42,57 +132,23 @@ export default function CalcWrapper({ src, title, icon }: Props) {
     } catch {}
   }
 
-  const handleSolicitarPresupuesto = () => {
-    const iframe = document.querySelector('iframe') as HTMLIFrameElement
-
-    const sendWA = (texto: string) => {
-      let msg = '¡Hola! Quisiera consultar precio para lo siguiente:\n\n'
-      if (texto && texto.trim()) {
-        msg += '🪟 *Ventanas:*\n' + texto
-      } else {
-        msg += '(Por favor indicanos qué ventanas necesitás)\n'
-      }
-      msg += '\n¿Me pueden dar un presupuesto? Muchas gracias.'
-      window.open('https://wa.me/59897699854?text=' + encodeURIComponent(msg), '_blank')
-    }
-
-    // Intento 1: acceso directo (mismo origen)
-    try {
-      const iframeWin = iframe?.contentWindow as any
-      if (typeof iframeWin?.rgGetCalcData === 'function') {
-        const txt = iframeWin.rgGetCalcData()
-        sendWA(txt)
-        return
-      }
-    } catch {}
-
-    // Intento 2: postMessage con timeout
-    try {
-      const iframeWin = iframe?.contentWindow
-      if (!iframeWin) { sendWA(''); return }
-      let responded = false
-      const handler = (e: MessageEvent) => {
-        if (e.data?.type !== 'rg:calcData') return
-        responded = true
-        window.removeEventListener('message', handler)
-        sendWA(e.data.texto || '')
-      }
-      window.addEventListener('message', handler)
-      setTimeout(() => {
-        if (!responded) {
-          window.removeEventListener('message', handler)
-          sendWA('')
-        }
-      }, 2000)
-      iframeWin.postMessage('rg:getCalcData', '*')
-    } catch {
-      sendWA('')
-    }
+  const onIframeLoad = (iframe: HTMLIFrameElement) => {
+    injectCSS(iframe)
+    // Esperar un momento para que VP esté inicializado, luego enviar precios
+    setTimeout(() => sendPrices(iframe), 500)
   }
+
+  // Cuando cambia el vendedor, reenviar precios
+  useEffect(() => {
+    if (iframeRef.current && pricesLoaded) {
+      sendPrices(iframeRef.current)
+    }
+  }, [vendedor])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0f0f0f', fontFamily: "'DM Sans', sans-serif" }}>
 
+      {/* Top bar */}
       <header style={{
         height: 52, flexShrink: 0, background: '#111', borderBottom: '1px solid #1e1e1e',
         display: 'flex', alignItems: 'center', padding: '0 12px', gap: 10, zIndex: 50,
@@ -108,6 +164,13 @@ export default function CalcWrapper({ src, title, icon }: Props) {
 
         <div style={{ width: 1, height: 24, background: '#2a2a2a', flexShrink: 0 }} />
         <span style={{ fontSize: 13, fontWeight: 700, color: '#F7B731', whiteSpace: 'nowrap' }}>{icon} {title}</span>
+
+        {/* Indicador de precios cargados */}
+        {pricesLoaded && (
+          <span style={{ fontSize: 10, color: '#6ec8a0', background: 'rgba(110,200,160,0.1)', border: '1px solid rgba(110,200,160,0.2)', borderRadius: 10, padding: '2px 8px' }}>
+            ✓ Precios actualizados
+          </span>
+        )}
 
         <nav style={{ display: 'flex', gap: 2, marginLeft: 8, flex: 1, overflowX: 'auto' }}>
           {CALCS.map((c) => {
@@ -159,18 +222,18 @@ export default function CalcWrapper({ src, title, icon }: Props) {
         </div>
       </header>
 
+      {/* iframe */}
       <iframe
+        ref={iframeRef}
         key={iframeSrc}
         src={iframeSrc}
         title={title}
         style={{ flex: 1, border: 'none', width: '100%', display: 'block' }}
         allow="clipboard-write"
-        onLoad={(e) => injectCSS(e.target as HTMLIFrameElement)}
+        onLoad={(e) => onIframeLoad(e.target as HTMLIFrameElement)}
       />
 
       {loginModal && <VendedorLoginModal onClose={() => setLoginModal(false)} />}
-
-
     </div>
   )
 }

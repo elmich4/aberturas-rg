@@ -2166,42 +2166,91 @@ v_agregarItem();
 
 
 <script>
-/* ── RG postMessage bridge ── */
+/* ── RG Supabase price bridge ── */
 (function() {
-  function rgGetData() {
-    var txt = '';
-    try {
-      if (window.v_ultimosGrupos && window.v_ultimosGrupos.length) {
-        var filasWA = window.v_buildResumenFilas(window.v_ultimosGrupos);
-        if (window.v_ultimosGrupos.length === 1) {
-          txt += window.v_fmtM(window.v_ultimosGrupos[0].ancho) + ' de ancho x ' + window.v_fmtM(window.v_ultimosGrupos[0].alto) + ' de alto\n';
-        }
-        txt += '─────────────────\n';
-        var lastMedida = '';
-        filasWA.forEach(function(f) {
-          var medidaKey = (f.itemPrefix||'') + (f.medida||'');
-          if (medidaKey !== lastMedida) {
-            if (lastMedida) txt += '\n';
-            txt += '📐 ' + medidaKey + '\n';
-            lastMedida = medidaKey;
-          }
-          var nombre = (f.lineas && f.lineas[0]) ? f.lineas[0].texto : '';
-          var extras = (f.lineas||[]).slice(1).filter(function(l){ return l.valor !== 'Incluido' && l.valor !== '—'; });
-          txt += '• ' + nombre;
-          if (extras.length) txt += ' + ' + extras.map(function(l){return l.texto;}).join(' + ');
-          txt += '\n';
-        });
-      }
-    } catch(err) { txt = ''; }
-    return txt;
-  }
+
+  // Escucha precios desde CalcWrapper (React)
   window.addEventListener('message', function(e) {
-    if (e.data === 'rg:getCalcData') {
-      window.parent.postMessage({ type: 'rg:calcData', texto: rgGetData() }, '*');
+
+    // Recibir precios desde Supabase
+    if (e.data && e.data.type === 'rg:setPrices') {
+      var d = e.data;
+      try {
+        // Actualizar tablas de medidas estándar
+        if (d.est_ventana_s20 && d.est_ventana_s20.length) VP.est_ventana_s20 = d.est_ventana_s20;
+        if (d.est_ventana_s25 && d.est_ventana_s25.length) VP.est_ventana_s25 = d.est_ventana_s25;
+        if (d.est_monoblock_s20 && d.est_monoblock_s20.length) VP.est_monoblock_s20 = d.est_monoblock_s20;
+        if (d.est_monoblock_s25 && d.est_monoblock_s25.length) VP.est_monoblock_s25 = d.est_monoblock_s25;
+        // Actualizar precios de reja, persiana, mosquitero
+        if (d.reja_12mm) VP.reja_12mm = d.reja_12mm;
+        if (d.reja_16mm) VP.reja_16mm = d.reja_16mm;
+        if (d.m_s20) VP.m_s20 = d.m_s20;
+        if (d.m_s25) VP.m_s25 = d.m_s25;
+        if (d.p_pvc) VP.p_pvc = d.p_pvc;
+        if (d.p_alb) VP.p_alb = d.p_alb;
+        if (d.p_alm) VP.p_alm = d.p_alm;
+        if (d.p_imm) VP.p_imm = d.p_imm;
+        // Actualizar perfiles de vendedor
+        if (d.perfiles && d.perfiles.length) {
+          VP.perfiles = d.perfiles;
+          if (typeof renderSelectorPerfilGlobal === 'function') renderSelectorPerfilGlobal();
+          if (typeof v_renderPerfiles === 'function') v_renderPerfiles();
+        }
+        // Re-renderizar selectores de medidas estándar si ya están en pantalla
+        document.querySelectorAll('[id$="-est-medida"]').forEach(function(sel) {
+          var id = sel.id.replace('-est-medida','');
+          if (typeof v_actualizarHeaderItem === 'function') v_actualizarHeaderItem(id);
+        });
+        window.parent.postMessage({ type: 'rg:pricesApplied', ok: true }, '*');
+      } catch(err) {
+        window.parent.postMessage({ type: 'rg:pricesApplied', ok: false, err: err.toString() }, '*');
+      }
     }
+
+    // Responder con datos calculados para WA
+    if (e.data === 'rg:getCalcData') {
+      var txt = '';
+      try {
+        if (window.v_ultimosGrupos && window.v_ultimosGrupos.length) {
+          var filasWA = window.v_buildResumenFilas(window.v_ultimosGrupos);
+          if (window.v_ultimosGrupos.length === 1) {
+            txt += window.v_fmtM(window.v_ultimosGrupos[0].ancho) + ' de ancho x ' + window.v_fmtM(window.v_ultimosGrupos[0].alto) + ' de alto\n';
+          }
+          txt += '─────────────────\n';
+          var lastMedida = '';
+          filasWA.forEach(function(f) {
+            var medidaKey = (f.itemPrefix||'') + (f.medida||'');
+            if (medidaKey !== lastMedida) {
+              if (lastMedida) txt += '\n';
+              txt += '📐 ' + medidaKey + '\n';
+              lastMedida = medidaKey;
+            }
+            var nombre = (f.lineas && f.lineas[0]) ? f.lineas[0].texto : '';
+            var extras = (f.lineas||[]).slice(1).filter(function(l){ return l.valor !== 'Incluido' && l.valor !== '—'; });
+            txt += '• ' + nombre;
+            if (extras.length) txt += ' + ' + extras.map(function(l){return l.texto;}).join(' + ');
+            txt += '\n';
+          });
+        }
+      } catch(err) { txt = ''; }
+      window.parent.postMessage({ type: 'rg:calcData', texto: txt }, '*');
+    }
+
+    // Función accesible directamente
+    window.rgGetCalcData = function() {
+      var txt = '';
+      try {
+        if (window.v_ultimosGrupos && window.v_ultimosGrupos.length) {
+          var filas = window.v_buildResumenFilas(window.v_ultimosGrupos);
+          filas.forEach(function(f) {
+            var nombre = (f.lineas && f.lineas[0]) ? f.lineas[0].texto : '';
+            txt += '• ' + nombre + '\n';
+          });
+        }
+      } catch(e) {}
+      return txt;
+    };
   });
-  // También exponer globalmente por si acaso
-  window.rgGetCalcData = rgGetData;
 })();
 </script>
 </body>
