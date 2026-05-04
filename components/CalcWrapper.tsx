@@ -37,12 +37,12 @@ export default function CalcWrapper({ src, title, icon }: Props) {
     setLoginLoading(true); setLoginError('')
     const { data, error } = await supabase
       .from('vendedores').select('*')
-      .eq('usuario', loginUser.trim())
-      .eq('password', loginPass)
+      .eq("username", loginUser.trim())
+      .eq("password", loginPass)
       .single()
     setLoginLoading(false)
     if (error || !data) { setLoginError('Usuario o contraseña incorrectos'); return }
-    setVendedor({ nombre: data.nombre, usuario: data.usuario, telefono: data.telefono })
+    setVendedor({ nombre: data.nombre, usuario: data.username, telefono: data.telefono })
     setLoginModal(false); setLoginUser(''); setLoginPass('')
   }
 
