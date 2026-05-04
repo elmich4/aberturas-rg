@@ -32,11 +32,26 @@ export default function CalcWrapper({ src, title, icon }: Props) {
     try {
       const doc = iframe.contentDocument
       if (!doc) return
-      const style = doc.createElement('style')
+
+      // Ocultar siempre el header interno
+      const baseStyle = doc.createElement('style')
+      baseStyle.textContent = [
+        '#user-bar { display: none !important; }',
+        '.app-header { display: none !important; }',
+        '#cliente-wa-bar { display: none !important; }',
+      ].join('\n')
+      doc.head.appendChild(baseStyle)
+
       if (!vendedor) {
-        style.textContent = [
-          '#user-bar { display: none !important; }',
-          '.app-header { display: none !important; }',
+        // Activar modo-cliente nativo del HTML
+        const win = iframe.contentWindow as any
+        if (win?.document?.body) {
+          win.document.body.classList.add('modo-cliente')
+          win.document.body.classList.remove('modo-vendedor')
+        }
+        // CSS adicional para ocultar precios en resumen
+        const clientStyle = doc.createElement('style')
+        clientStyle.textContent = [
           '.resumen-card-total { display: none !important; }',
           '.rct-val { display: none !important; }',
           '.rct-adj-wrap { display: none !important; }',
@@ -46,16 +61,14 @@ export default function CalcWrapper({ src, title, icon }: Props) {
           '.btn-wa { display: none !important; }',
           '.btn-img { display: none !important; }',
           '.btn-pdf { display: none !important; }',
+          // Ocultar precio en el resumen de la card (el input del precio)
+          '.resumen-card input[type="number"] { pointer-events: none !important; color: transparent !important; background: transparent !important; border: none !important; }',
+          // Ocultar el precio en el header del ítem del sidebar (el texto "$1.550")
+          '.bloque-serie-body .bloque-opcion-val { display: none !important; }',
           '.color-precio { display: none !important; }',
-          'input[type="number"] { pointer-events: none !important; color: transparent !important; background: transparent !important; border-color: transparent !important; box-shadow: none !important; }',
         ].join('\n')
-      } else {
-        style.textContent = [
-          '#user-bar { display: none !important; }',
-          '.app-header { display: none !important; }',
-        ].join('\n')
+        doc.head.appendChild(clientStyle)
       }
-      doc.head.appendChild(style)
     } catch {}
   }
 
