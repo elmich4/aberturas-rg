@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
-import { useVendedor } from '@/lib/vendedor-auth'
+import { useAuth } from '@/lib/auth'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,7 +25,7 @@ const TABLA_LABEL: Record<string, string> = {
 }
 
 export default function AdminActividadPage() {
-  const { isAdmin, vendedor } = useVendedor()
+  const { isAdmin, vendedor } = useAuth()
   const router = useRouter()
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [loading, setLoading] = useState(true)

@@ -2,7 +2,13 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
-import { useVendedor } from '@/lib/vendedor-auth'
+import { useAuth } from '@/lib/auth'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,7 +26,7 @@ const S = {
 }
 
 export default function AdminUsuariosPage() {
-  const { vendedor, isAdmin, logAction } = useVendedor()
+  const { vendedor, isAdmin } = useAuth()
   const router = useRouter()
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [loading, setLoading] = useState(true)
@@ -68,7 +74,7 @@ export default function AdminUsuariosPage() {
       if (form.password.trim()) upd.password = form.password.trim()
       const { error: err } = await supabase.from('vendedores').update(upd).eq('id', editando.id)
       if (err) { setError('Error al guardar'); setSaving(false); return }
-      await logAction('editar', 'vendedores', `Editó usuario ${form.nombre} (${form.rol})`, editando.id, { nombre: editando.nombre, rol: editando.rol }, { nombre: form.nombre, rol: form.rol })
+      await supabase.from('audit_log').insert({ vendedor_id: vendedor?.id, vendedor_nombre: vendedor?.nombre, accion: 'editar', tabla: 'vendedores', registro_id: editando.id, descripcion: `Editó usuario ${form.nombre} (${form.rol})`, datos_antes: { nombre: editando.nombre, rol: editando.rol }, datos_despues: { nombre: form.nombre, rol: form.rol } })
     } else {
       // Verificar que no exista el username
       const { data: existe } = await supabase.from('vendedores').select('id').eq('username', form.username.trim()).single()
@@ -79,7 +85,7 @@ export default function AdminUsuariosPage() {
         rol: form.rol, activo: true,
       })
       if (err) { setError('Error al crear usuario'); setSaving(false); return }
-      await logAction('crear', 'vendedores', `Creó usuario ${form.nombre} con rol ${form.rol}`)
+      await supabase.from('audit_log').insert({ vendedor_id: vendedor?.id, vendedor_nombre: vendedor?.nombre, accion: 'crear', tabla: 'vendedores', descripcion: `Creó usuario ${form.nombre} con rol ${form.rol}` })
     }
     setSaving(false); setModal(false); load()
   }
@@ -87,7 +93,7 @@ export default function AdminUsuariosPage() {
   const toggleActivo = async (u: Usuario) => {
     const nuevoEstado = !u.activo
     await supabase.from('vendedores').update({ activo: nuevoEstado }).eq('id', u.id)
-    await logAction(nuevoEstado ? 'activar' : 'desactivar', 'vendedores', `${nuevoEstado ? 'Activó' : 'Desactivó'} usuario ${u.nombre}`, u.id)
+    await supabase.from('audit_log').insert({ vendedor_id: vendedor?.id, vendedor_nombre: vendedor?.nombre, accion: nuevoEstado ? 'activar' : 'desactivar', tabla: 'vendedores', registro_id: u.id, descripcion: `${nuevoEstado ? 'Activó' : 'Desactivó'} usuario ${u.nombre}` })
     load()
   }
 
@@ -96,7 +102,7 @@ export default function AdminUsuariosPage() {
     if (!confirm(`¿Eliminar a ${u.nombre}? Esta acción no se puede deshacer.`)) return
     await supabase.from('audit_log').update({ vendedor_id: null }).eq('vendedor_id', u.id)
     await supabase.from('vendedores').delete().eq('id', u.id)
-    await logAction('eliminar', 'vendedores', `Eliminó usuario ${u.nombre}`)
+    await supabase.from('audit_log').insert({ vendedor_id: vendedor?.id, vendedor_nombre: vendedor?.nombre, accion: 'eliminar', tabla: 'vendedores', descripcion: `Eliminó usuario ${u.nombre}` })
     load()
   }
 

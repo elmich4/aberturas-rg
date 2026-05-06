@@ -1,5 +1,5 @@
 'use client'
-import { useVendedor } from '@/lib/vendedor-auth'
+import { useAuth } from '@/lib/auth'
 import { useRouter, usePathname } from 'next/navigation'
 import { useEffect } from 'react'
 import Link from 'next/link'
@@ -18,7 +18,7 @@ const MENU_ADMIN = [
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { vendedor, loading, logout, isAdmin } = useVendedor()
+  const { vendedor, loading, logout, isAdmin } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
 
@@ -53,8 +53,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
 
         {/* Nav */}
-        <nav style={{ flex: 1, padding: '12px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {MENU.map(item => {
+        <nav style={{ flex: 1, padding: '12px 8px', display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto' }}>
+          {MENU_BASE.map(item => {
             const active = pathname === item.href
             return (
               <Link key={item.href} href={item.href} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, textDecoration: 'none', background: active ? 'rgba(214,40,40,0.15)' : 'transparent', color: active ? '#fff' : '#888', borderLeft: active ? '3px solid #D62828' : '3px solid transparent', fontSize: 14, fontWeight: active ? 600 : 400, transition: 'all .15s' }}>
@@ -64,11 +64,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             )
           })}
 
-          {/* Separador para sección admin */}
+          {/* Sección admin — solo admins */}
           {isAdmin && (
-            <div style={{ borderTop: '1px solid #1e1e1e', marginTop: 4, paddingTop: 4 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, color: '#D62828', padding: '6px 12px' }}>Admin</div>
-            </div>
+            <>
+              <div style={{ borderTop: '1px solid #1e1e1e', marginTop: 8, paddingTop: 8 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, color: '#D62828', padding: '4px 12px 6px' }}>⭐ Admin</div>
+              </div>
+              {MENU_ADMIN.map(item => {
+                const active = pathname === item.href
+                return (
+                  <Link key={item.href} href={item.href} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, textDecoration: 'none', background: active ? 'rgba(214,40,40,0.15)' : 'transparent', color: active ? '#fff' : '#888', borderLeft: active ? '3px solid #D62828' : '3px solid transparent', fontSize: 14, fontWeight: active ? 600 : 400, transition: 'all .15s' }}>
+                    <span style={{ fontSize: 16 }}>{item.icon}</span>
+                    {item.label}
+                  </Link>
+                )
+              })}
+            </>
           )}
 
           <div style={{ flex: 1 }} />
@@ -87,7 +98,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* User */}
         <div style={{ padding: '12px 16px', borderTop: '1px solid #1e1e1e' }}>
           <div style={{ fontSize: 12, color: '#888', marginBottom: 2 }}>👤 {vendedor.nombre}</div>
-          <div style={{ fontSize: 10, color: '#D62828', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>
+          <div style={{ fontSize: 10, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1, color: isAdmin ? '#D62828' : '#F7B731', fontWeight: 700 }}>
             {isAdmin ? '⭐ Admin' : 'Vendedor'}
           </div>
           <button onClick={() => { logout(); router.push('/login') }}

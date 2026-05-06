@@ -8,6 +8,7 @@ type AuthState = {
   perfiles: Perfil[]
   perfilActivo: Perfil | null
   loading: boolean
+  isAdmin: boolean
   login: (username: string, password: string) => Promise<{ error?: string }>
   logout: () => void
   cambiarPerfil: (id: string) => void
@@ -15,7 +16,6 @@ type AuthState = {
 }
 
 const AuthContext = createContext<AuthState | null>(null)
-
 const SESSION_KEY = 'rg_vendedor'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -50,7 +50,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function login(username: string, password: string) {
-    // Simple password check via API route (never expose hashes to client)
     const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -82,9 +81,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (vendedor) await loadPerfiles(vendedor.id)
   }
 
+  const isAdmin = vendedor?.rol === 'admin'
+
   return (
     <AuthContext.Provider value={{
-      vendedor, perfiles, perfilActivo, loading,
+      vendedor, perfiles, perfilActivo, loading, isAdmin,
       login, logout, cambiarPerfil, refreshPerfiles,
     }}>
       {children}
