@@ -9,6 +9,7 @@ const MENU_BASE = [
   { href: '/admin/landing',  icon: '🏠', label: 'Landing'    },
   { href: '/admin/blog',     icon: '📝', label: 'Blog'       },
   { href: '/admin/trabajos', icon: '🖼️', label: 'Trabajos'   },
+  { href: '/admin/slides',    icon: '🎞️', label: 'Hero Slider' },
   { href: '/admin/precios',  icon: '💰', label: 'Precios'    },
   { href: '/admin/tienda',      icon: '🛍️', label: 'Tienda'      },
   { href: '/admin/categorias',  icon: '🗂️', label: 'Categorías'  },

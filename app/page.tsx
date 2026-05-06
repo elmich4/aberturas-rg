@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import PublicLayout from '@/components/public/PublicLayout'
 import Link from 'next/link'
 import Resenas from '@/components/Resenas'
+import HeroSlider from '@/components/HeroSlider'
 import { supabase } from '@/lib/supabase'
 
 const SERVICIOS = [
@@ -63,8 +64,9 @@ export default function HomePage() {
 
       {/* ── HERO ── */}
       <section className="hero-section" style={{ display: 'flex', alignItems: 'center', background: 'linear-gradient(135deg,#FAFAF8 0%,#f5f0eb 100%)', position: 'relative', overflow: 'hidden', padding: '48px 20px' }}>
+        <HeroSlider />
         <div style={{ position: 'absolute', right: -80, top: -80, width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle,rgba(214,40,40,.07) 0%,transparent 70%)', pointerEvents: 'none' }} />
-        <div style={{ maxWidth: 1200, margin: '0 auto', width: '100%' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', width: '100%', position: 'relative', zIndex: 1 }}>
           <div className="grid-2col">
             <div>
               <div style={{ display: 'inline-block', background: 'rgba(214,40,40,.08)', color: '#D62828', borderRadius: 4, padding: '4px 12px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 20, border: '1px solid rgba(214,40,40,.15)' }}>
