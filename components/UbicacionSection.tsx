@@ -5,7 +5,7 @@ const MAPS_LINK = 'https://maps.app.goo.gl/PYVccGwgjKM2C1Nh9'
 
 const HORARIOS = [
   { dia: 'Lunes a viernes', hora: '8:00 a.m. – 6:00 p.m.' },
-  { dia: 'Sábado',          hora: '8:00 a.m. – 1:00 p.m.' },
+  { dia: 'Sábado',          hora: 'Cerrado' },
   { dia: 'Domingo',         hora: 'Cerrado' },
 ]
 
