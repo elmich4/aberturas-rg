@@ -16,7 +16,9 @@ const CATS: Record<string, string> = {
   ventana_s20: '🪟 Serie 20', ventana_s25: '🪟 Serie 25',
   monoblock_s20: '🏠 Monoblock S20', monoblock_s25: '🏠 Monoblock S25',
   reja: '🔒 Rejas', persiana: '🎨 Persianas', mosquitero: '🦟 Mosquiteros',
-  otro: '🔧 Otros'
+  pvc_tablilla: '🏠 PVC — Tablillas', pvc_perfil: '🏠 PVC — Perfilería',
+  yeso_placa: '🏗️ Yeso — Placas', yeso_perfil: '🏗️ Yeso — Perfilería',
+  yeso_term: '🏗️ Yeso — Terminación', otros: '🔧 Otros'
 }
 const CRITERIOS = ['fijo', 'm2', 'ml']
 const CRITERIO_LABEL: Record<string, string> = { fijo: 'Precio fijo', m2: 'Por m²', ml: 'Por ML (ancho+alto)' }
