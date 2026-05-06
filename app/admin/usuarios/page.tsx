@@ -223,4 +223,5 @@ export default function AdminUsuariosPage() {
         </div>
       )}
     </div>
+  )
 }
