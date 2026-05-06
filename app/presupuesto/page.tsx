@@ -12,27 +12,15 @@ const esc = (s: string) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(
 type Item = { id: number; desc: string; cant: number; precio: number; unidad: string }
 type Prod = { id: string; calculadora: string; clave: string; descripcion: string; precio: number; unidad: string; criterio: string }
 
-const CAT_LABELS: Record<string, string> = {
-  ventana_s20:   '🪟 Serie 20',
-  ventana_s25:   '🪟 Serie 25',
-  monoblock_s20: '🏠 Monoblock S20',
-  monoblock_s25: '🏠 Monoblock S25',
-  reja:          '🔒 Rejas',
-  persiana:      '🎨 Persianas',
-  mosquitero:    '🦟 Mosquiteros',
-  pvc_tablilla:  '🏠 PVC — Tablillas',
-  pvc_perfil:    '🏠 PVC — Perfilería',
-  yeso_placa:    '🏗️ Yeso — Placas',
-  yeso_perfil:   '🏗️ Yeso — Perfilería',
-  yeso_term:     '🏗️ Yeso — Terminación',
-  otros:         '🔧 Otros',
-}
+// Categorías cargadas dinámicamente desde Supabase
+type Categoria = { clave: string; label: string; orden: number }
 
 export default function PresupuestoPage() {
   const { vendedor } = useVendedor()
   const router = useRouter()
   const [items, setItems] = useState<Item[]>([])
   const [productos, setProductos] = useState<Prod[]>([])
+  const [categorias, setCategorias] = useState<Categoria[]>([])
   const [loadingProds, setLoadingProds] = useState(true)
   const [titulo, setTitulo] = useState('')
   const [desc, setDesc] = useState('')
@@ -48,23 +36,21 @@ export default function PresupuestoPage() {
   const telefono = vendedor?.telefono || '097 699 854'
   const nombrePerfil = vendedor?.nombre || 'Aberturas RG'
 
-  // ── Cargar productos desde Supabase ──────────────────────────────────
+  // ── Cargar productos y categorías desde Supabase ──────────────────────
   useEffect(() => {
-    supabase
-      .from('precios_calc')
-      .select('*')
-      .eq('activo', true)
-      .order('calculadora')
-      .order('orden')
-      .then(({ data }) => {
-        setProductos(data || [])
-        setLoadingProds(false)
-      })
+    Promise.all([
+      supabase.from('precios_calc').select('*').eq('activo', true).order('calculadora').order('orden'),
+      supabase.from('presupuesto_categorias').select('*').eq('activo', true).order('orden')
+    ]).then(([{ data: prods }, { data: cats }]) => {
+      setProductos(prods || [])
+      setCategorias(cats || [])
+      setLoadingProds(false)
+    })
   }, [])
 
-  // Categorías que tienen productos
-  const catsConProductos = Object.keys(CAT_LABELS).filter(cat =>
-    productos.some(p => p.calculadora === cat)
+  // Solo mostrar categorías que tienen productos
+  const catsConProductos = categorias.filter(cat =>
+    productos.some(p => p.calculadora === cat.clave)
   )
 
   // Búsqueda
@@ -198,15 +184,15 @@ export default function PresupuestoPage() {
             {loadingProds
               ? <div style={{ padding: '1rem', color: '#aaa', fontSize: '0.85rem', textAlign: 'center' }}>Cargando productos...</div>
               : catsConProductos.map(cat => (
-                  <div key={cat} className="pres-cat">
+                  <div key={cat.clave} className="pres-cat">
                     <button className="pres-cat-header"
-                      onClick={() => setOpenCats(p => ({ ...p, [cat]: !p[cat] }))}>
-                      <span style={{ fontSize: '0.82rem' }}>{CAT_LABELS[cat]}</span>
-                      <span>{openCats[cat] ? '▲' : '▼'}</span>
+                      onClick={() => setOpenCats(p => ({ ...p, [cat.clave]: !p[cat.clave] }))}>
+                      <span style={{ fontSize: '0.82rem' }}>{cat.label}</span>
+                      <span>{openCats[cat.clave] ? '▲' : '▼'}</span>
                     </button>
-                    {openCats[cat] && (
+                    {openCats[cat.clave] && (
                       <div className="pres-cat-items">
-                        {productos.filter(p => p.calculadora === cat).map(prod => (
+                        {productos.filter(p => p.calculadora === cat.clave).map(prod => (
                           <button key={prod.id} className="pres-cat-item"
                             onClick={() => addItem(prod.clave, prod.precio, prod.unidad)}>
                             <span className="pres-item-name">{prod.clave}</span>

@@ -10,7 +10,8 @@ const MENU_BASE = [
   { href: '/admin/blog',     icon: '📝', label: 'Blog'       },
   { href: '/admin/trabajos', icon: '🖼️', label: 'Trabajos'   },
   { href: '/admin/precios',  icon: '💰', label: 'Precios'    },
-  { href: '/admin/tienda',   icon: '🛍️', label: 'Tienda'     },
+  { href: '/admin/tienda',      icon: '🛍️', label: 'Tienda'      },
+  { href: '/admin/categorias',  icon: '🗂️', label: 'Categorías'  },
 ]
 const MENU_ADMIN = [
   { href: '/admin/usuarios',  icon: '👥', label: 'Usuarios'  },
