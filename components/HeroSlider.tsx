@@ -34,8 +34,9 @@ export default function HeroSlider() {
         <div key={url} style={{
           position: 'absolute', inset: 0,
           backgroundImage: `url(${url})`,
-          backgroundSize: 'cover',
+          backgroundSize: 'contain',
           backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
           transition: 'opacity 1s ease',
           opacity: i === current ? 1 : 0,
         }} />
