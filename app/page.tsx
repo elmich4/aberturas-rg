@@ -4,6 +4,7 @@ import PublicLayout from '@/components/public/PublicLayout'
 import Link from 'next/link'
 import Resenas from '@/components/Resenas'
 import HeroSlider from '@/components/HeroSlider'
+import UbicacionSection from '@/components/UbicacionSection'
 import { supabase } from '@/lib/supabase'
 
 const SERVICIOS = [
@@ -180,6 +181,9 @@ export default function HomePage() {
 
       {/* ── RESEÑAS ── */}
       <Resenas />
+
+      {/* ── UBICACIÓN ── */}
+      <UbicacionSection />
 
       {/* ── PROCESO ── */}
       <section className="section-pad" style={{ padding: '72px 20px', background: '#fff' }}>
