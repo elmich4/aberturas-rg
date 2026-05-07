@@ -1,112 +1,222 @@
-import Image from "next/image";
-import Link from "next/link";
-import PublicLayout from "@/components/public/PublicLayout";
+'use client'
+import { useEffect, useState } from 'react'
+import PublicLayout from '@/components/public/PublicLayout'
+import Link from 'next/link'
+import Resenas from '@/components/Resenas'
+import HeroSlider from '@/components/HeroSlider'
+import UbicacionSection from '@/components/UbicacionSection'
+import { supabase } from '@/lib/supabase'
 
-export default function Home() {
+const SERVICIOS = [
+  { icon: '🪟', title: 'Ventanas & Puertas',  desc: 'Serie 20, Serie 25, Modena, Colonial, Guillotina. Aluminio de alta resistencia con vidrio simple, doble o DVH.', href: '/contacto' },
+  { icon: '🏠', title: 'Cielorraso PVC',       desc: 'Tablillas de 6 a 10mm, con o sin aislación. Instalación prolija y duradera para cualquier ambiente.', href: '/contacto' },
+  { icon: '🧱', title: 'Yeso / Durlock',       desc: 'Cielorrasos y tabiques de placa. Terminación perfecta, aislación acústica y térmica garantizada.', href: '/contacto' },
+  { icon: '🔒', title: 'Rejas & Seguridad',    desc: 'Rejas fijas y puertas reja en varillas de 12mm y 16mm. Protección sin sacrificar el diseño.', href: '/contacto' },
+  { icon: '🎨', title: 'Persianas',             desc: 'PVC blanco, aluminio en varios colores, imitación madera. Enrollables y de accionamiento manual.', href: '/contacto' },
+  { icon: '📐', title: 'Medida a pedido',       desc: 'Cada abertura se fabrica a la medida exacta de tu vano. Sin compromisos ni adaptaciones.', href: '/contacto' },
+]
+
+const PORQUES = [
+  { title: 'Precio justo',       desc: 'Sin intermediarios. Fabricamos y colocamos nosotros mismos.' },
+  { title: 'Garantía escrita',   desc: 'Si algo falla, volvemos sin costo adicional.' },
+  { title: 'Presupuesto online', desc: 'Consultá el costo por WhatsApp, sin esperar una visita.' },
+  { title: 'Cobertura total',    desc: 'Instalamos en todo Uruguay. Coordinamos la logística.' },
+]
+
+// Defaults si Supabase no tiene datos aún
+const DEFAULTS: Record<string, string> = {
+  'hero__badge':         'Aberturas de aluminio y PVC',
+  'hero__titulo_linea1': 'Tu hogar,',
+  'hero__titulo_linea2': 'bien cerrado.',
+  'hero__subtitulo':     'Ventanas, puertas, rejas y cielorrasos a medida. Instalación profesional en todo Uruguay con más de 15 años de experiencia.',
+  'stats__stat1_num':    '15+',
+  'stats__stat1_label':  'Años de experiencia',
+  'stats__stat2_num':    '2000+',
+  'stats__stat2_label':  'Instalaciones realizadas',
+  'stats__stat3_num':    '100%',
+  'stats__stat3_label':  'Medida a pedido',
+  'stats__stat4_num':    'UY',
+  'stats__stat4_label':  'Cobertura nacional',
+}
+
+export default function HomePage() {
+  const [content, setContent] = useState<Record<string, string>>(DEFAULTS)
+
+  useEffect(() => {
+    supabase.from('contenido').select('seccion,clave,valor').then(({ data }) => {
+      if (!data?.length) return
+      const map: Record<string, string> = { ...DEFAULTS }
+      data.forEach((r: any) => { map[`${r.seccion}__${r.clave}`] = r.valor })
+      setContent(map)
+    })
+  }, [])
+
+  const c = (key: string) => content[key] || DEFAULTS[key] || ''
+
+  const STATS = [
+    { num: c('stats__stat1_num'), label: c('stats__stat1_label') },
+    { num: c('stats__stat2_num'), label: c('stats__stat2_label') },
+    { num: c('stats__stat3_num'), label: c('stats__stat3_label') },
+    { num: c('stats__stat4_num'), label: c('stats__stat4_label') },
+  ]
+
   return (
     <PublicLayout>
-      <main className="relative min-h-screen w-full overflow-hidden bg-black">
-        
-        {/* HERO SECTION - El fondo que faltaba */}
-        <section className="relative h-screen w-full flex items-center justify-center">
-          {/* Imagen de fondo con overlay oscuro para que se lea el texto */}
-          <div className="absolute inset-0 z-0">
-            <Image
-              src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=2070"
-              alt="Aberturas de Aluminio de Lujo"
-              fill
-              className="object-cover opacity-60"
-              priority
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black" />
-          </div>
 
-          {/* Contenido Principal */}
-          <div className="relative z-10 container mx-auto px-6 text-center">
-            <div className="inline-block mb-6">
-              <span className="text-[#D62828] tracking-[6px] uppercase text-xs font-black bg-white/5 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
-                Calidad que perdura
-              </span>
-            </div>
-            
-            <h1 className="text-6xl md:text-9xl font-serif text-white mb-8 leading-none">
-              Aberturas <span className="text-[#D62828] italic">RG</span>
-            </h1>
-            
-            <p className="text-gray-200 max-w-2xl mx-auto text-lg md:text-2xl mb-12 font-light leading-relaxed">
-              Soluciones premium en <span className="text-white font-medium">aluminio y PVC</span> para proyectos que exigen máxima eficiencia térmica y diseño de vanguardia.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-5 justify-center items-center">
-              <Link 
-                href="/tienda" 
-                className="w-full sm:w-auto bg-[#D62828] hover:bg-red-700 text-white px-12 py-5 rounded-2xl font-bold text-sm tracking-widest transition-all transform hover:scale-105 shadow-2xl shadow-red-600/30"
-              >
-                EXPLORAR CATÁLOGO
-              </Link>
-              <Link 
-                href="#contacto" 
-                className="w-full sm:w-auto bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/20 px-12 py-5 rounded-2xl font-bold text-sm tracking-widest transition-all"
-              >
-                PRESUPUESTO SIN CARGO
-              </Link>
-            </div>
-          </div>
-
-          {/* Indicador de scroll */}
-          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce">
-            <div className="w-1 h-12 bg-gradient-to-b from-[#D62828] to-transparent rounded-full" />
-          </div>
-        </section>
-
-        {/* SECCIÓN DE PRODUCTOS DESTACADOS (LAYOUT GRID) */}
-        <section className="py-32 bg-white relative z-10">
-          <div className="container mx-auto px-6">
-            <div className="flex flex-col md:flex-row justify-between items-end mb-20 gap-6">
-              <div className="max-w-xl">
-                <h2 className="text-4xl md:text-6xl font-serif text-black leading-tight">
-                  Modelos que definen <br />
-                  <span className="text-[#D62828] italic">estilo y confort</span>
-                </h2>
+      {/* ── HERO ── */}
+      <section className="hero-section" style={{ display: 'flex', alignItems: 'center', background: 'linear-gradient(135deg,#FAFAF8 0%,#f5f0eb 100%)', position: 'relative', overflow: 'hidden', padding: '48px 20px' }}>
+        <HeroSlider />
+        <div style={{ position: 'absolute', right: -80, top: -80, width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle,rgba(214,40,40,.07) 0%,transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ maxWidth: 1200, margin: '0 auto', width: '100%', position: 'relative', zIndex: 1 }}>
+          <div className="grid-2col">
+            <div>
+              <div style={{ display: 'inline-block', background: 'rgba(214,40,40,.08)', color: '#D62828', borderRadius: 4, padding: '4px 12px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 20, border: '1px solid rgba(214,40,40,.15)' }}>
+                {c('hero__badge')}
               </div>
-              <Link href="/tienda" className="group flex items-center gap-3 text-sm font-black tracking-widest uppercase border-b-2 border-black pb-2 hover:text-[#D62828] hover:border-[#D62828] transition-all">
-                Ver todos los productos
-                <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
-              </Link>
+              <h1 style={{ fontFamily:"'Playfair Display',serif", fontSize: 'clamp(38px,5vw,66px)', fontWeight: 900, lineHeight: 1.08, color: '#1a1a1a', margin: '0 0 20px' }}>
+                {c('hero__titulo_linea1')}<br />
+                <em style={{ color: '#D62828', fontStyle: 'italic' }}>{c('hero__titulo_linea2')}</em>
+              </h1>
+              <p style={{ fontSize: 'clamp(15px,2vw,18px)', lineHeight: 1.75, color: '#555', maxWidth: 460, margin: '0 0 32px' }}>
+                {c('hero__subtitulo')}
+              </p>
+              <div className="hero-btns" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <Link href="/presupuesto" style={{ background: '#D62828', color: '#fff', borderRadius: 10, padding: '14px 26px', textDecoration: 'none', fontFamily:"'Barlow Condensed',sans-serif", fontWeight: 700, fontSize: 16, textTransform: 'uppercase', letterSpacing: 1, boxShadow: '0 4px 16px rgba(214,40,40,.35)' }}>
+                  Pedir presupuesto →
+                </Link>
+                <a href="https://wa.me/59897699854" target="_blank" rel="noopener noreferrer"
+                  style={{ background: 'transparent', color: '#1a1a1a', border: '2px solid #1a1a1a', borderRadius: 10, padding: '14px 26px', textDecoration: 'none', fontFamily:"'Barlow Condensed',sans-serif", fontWeight: 700, fontSize: 16, textTransform: 'uppercase', letterSpacing: 1 }}>
+                  💬 WhatsApp
+                </a>
+              </div>
             </div>
 
-            {/* Grid de Productos */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-              {[
-                { title: "Serie 25 Corrediza", img: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=2070", tag: "Más Vendido" },
-                { title: "Puerta de Seguridad", img: "https://images.unsplash.com/photo-1509644851169-2acc08aa25b5?q=80&w=2070", tag: "Seguridad Pro" },
-                { title: "Paño Fijo DVH", img: "https://images.unsplash.com/photo-1533090161767-e6ffed986c88?q=80&w=2069", tag: "Eficiencia Térmica" }
-              ].map((item, idx) => (
-                <Link href="/tienda" key={idx} className="group block">
-                  <div className="relative aspect-[4/5] overflow-hidden rounded-3xl bg-gray-100 shadow-lg">
-                    <div className="absolute top-6 left-6 z-20">
-                      <span className="bg-black text-white text-[9px] font-black tracking-[2px] py-2 px-4 rounded-full uppercase group-hover:bg-[#D62828] transition-colors">
-                        {item.tag}
-                      </span>
-                    </div>
-                    <Image 
-                      src={item.img} 
-                      alt={item.title} 
-                      fill 
-                      className="object-cover transition-transform duration-1000 group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            {/* Stats card — oculta en mobile */}
+            <div className="hero-stats-card" style={{ background: '#fff', borderRadius: 20, boxShadow: '0 20px 60px rgba(0,0,0,.1)', padding: 40, border: '1px solid #f0ebe4' }}>
+              <div className="grid-2col-sm">
+                {STATS.map(s => (
+                  <div key={s.num} style={{ textAlign: 'center' }}>
+                    <div style={{ fontFamily:"'Playfair Display',serif", fontSize: 44, fontWeight: 900, color: '#D62828', lineHeight: 1, marginBottom: 6 }}>{s.num}</div>
+                    <div style={{ fontSize: 13, color: '#888', fontWeight: 500 }}>{s.label}</div>
                   </div>
-                  <div className="mt-8">
-                    <h3 className="text-2xl font-medium tracking-tight text-gray-900 group-hover:text-[#D62828] transition-colors">{item.title}</h3>
-                    <p className="text-gray-400 text-sm mt-2 font-light uppercase tracking-widest">Línea Alta Gama</p>
+                ))}
+              </div>
+              <div style={{ borderTop: '1px solid #f0ebe4', marginTop: 28, paddingTop: 20, textAlign: 'center' }}>
+                <div style={{ fontSize: 13, color: '#888', marginBottom: 12 }}>¿Necesitás un presupuesto ahora?</div>
+                <a href="https://wa.me/59897699854?text=Hola!%20Necesito%20un%20presupuesto" target="_blank" rel="noopener noreferrer"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#25D366', color: '#fff', borderRadius: 8, padding: '10px 20px', textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
+                  💬 Escribinos ahora
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile stats row */}
+          <div className="nav-mobile" style={{ gap: 0, marginTop: 32, background: '#fff', borderRadius: 14, overflow: 'hidden', border: '1px solid #ede8e2' }}>
+            {STATS.map((s, i) => (
+              <div key={s.num} style={{ flex: 1, textAlign: 'center', padding: '14px 8px', borderRight: i < STATS.length - 1 ? '1px solid #ede8e2' : 'none' }}>
+                <div style={{ fontFamily:"'Playfair Display',serif", fontSize: 26, fontWeight: 900, color: '#D62828', lineHeight: 1 }}>{s.num}</div>
+                <div style={{ fontSize: 10, color: '#888', marginTop: 3, lineHeight: 1.3 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── SERVICIOS ── */}
+      <section className="section-pad" style={{ padding: '72px 20px', background: '#fff' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 3, color: '#D62828', marginBottom: 12 }}>Lo que hacemos</div>
+            <h2 style={{ fontFamily:"'Playfair Display',serif", fontSize: 'clamp(28px,4vw,46px)', fontWeight: 700, color: '#1a1a1a', margin: 0 }}>
+              Soluciones completas<br /><em style={{ color: '#D62828' }}>para tu obra</em>
+            </h2>
+          </div>
+          <div className="grid-auto">
+            {SERVICIOS.map(s => (
+              <Link key={s.title} href={s.href} style={{ textDecoration: 'none', display: 'block', background: '#FAFAF8', borderRadius: 16, border: '1px solid #ede8e2', padding: 24, transition: 'all .2s' }}
+                onMouseEnter={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.transform = 'translateY(-4px)'; el.style.boxShadow = '0 12px 32px rgba(0,0,0,.08)'; el.style.borderColor = '#D62828' }}
+                onMouseLeave={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.transform = 'translateY(0)'; el.style.boxShadow = 'none'; el.style.borderColor = '#ede8e2' }}>
+                <div style={{ fontSize: 34, marginBottom: 14 }}>{s.icon}</div>
+                <div style={{ fontFamily:"'Playfair Display',serif", fontSize: 19, fontWeight: 700, color: '#1a1a1a', marginBottom: 8 }}>{s.title}</div>
+                <div style={{ fontSize: 14, color: '#777', lineHeight: 1.7, marginBottom: 12 }}>{s.desc}</div>
+                <div style={{ fontSize: 13, color: '#D62828', fontWeight: 600 }}>Ver más →</div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── POR QUÉ ── */}
+      <section className="section-pad" style={{ padding: '72px 20px', background: '#FAFAF8' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <div className="grid-2col" style={{ alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 3, color: '#D62828', marginBottom: 12 }}>Por qué elegirnos</div>
+              <h2 style={{ fontFamily:"'Playfair Display',serif", fontSize: 'clamp(26px,3.5vw,42px)', fontWeight: 700, color: '#1a1a1a', margin: '0 0 28px', lineHeight: 1.2 }}>
+                Más de 15 años<br />haciendo bien las cosas
+              </h2>
+              <p style={{ fontSize: 15, color: '#666', lineHeight: 1.85, marginBottom: 24 }}>
+                Somos una empresa familiar que empezó con un taller y hoy cubre todo el país. Cada trabajo lo hacemos como si fuera nuestra propia casa.
+              </p>
+              <a href="https://wa.me/59897699854" target="_blank" rel="noopener noreferrer"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: '#D62828', textDecoration: 'none', fontWeight: 700, fontSize: 15, borderBottom: '2px solid #D62828', paddingBottom: 2 }}>
+                Hablemos por WhatsApp →
+              </a>
+            </div>
+            <div className="grid-2col-sm">
+              {PORQUES.map((p,i) => (
+                <div key={p.title} style={{ background: '#fff', borderRadius: 14, border: '1px solid #ede8e2', padding: 22, marginTop: i%2===1?20:0 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 7, background: 'rgba(214,40,40,.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#D62828' }} />
                   </div>
-                </Link>
+                  <div style={{ fontFamily:"'Playfair Display',serif", fontSize: 15, fontWeight: 700, color: '#1a1a1a', marginBottom: 6 }}>{p.title}</div>
+                  <div style={{ fontSize: 13, color: '#777', lineHeight: 1.65 }}>{p.desc}</div>
+                </div>
               ))}
             </div>
           </div>
-        </section>
-      </main>
+        </div>
+      </section>
+
+      {/* ── RESEÑAS ── */}
+      <Resenas />
+
+      {/* ── UBICACIÓN ── */}
+      <UbicacionSection />
+
+      {/* ── PROCESO ── */}
+      <section className="section-pad" style={{ padding: '72px 20px', background: '#fff' }}>
+        <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 3, color: '#D62828', marginBottom: 12 }}>Cómo funciona</div>
+          <h2 style={{ fontFamily:"'Playfair Display',serif", fontSize: 'clamp(26px,3.5vw,42px)', fontWeight: 700, color: '#1a1a1a', margin: '0 0 48px' }}>Del presupuesto a la instalación</h2>
+          <div className="grid-4col" style={{ position: 'relative' }}>
+            {[
+              { num: '01', title: 'Consultás', desc: 'Mandanos un mensaje por WhatsApp' },
+              { num: '02', title: 'Cotizamos', desc: 'Te respondemos con precios al instante' },
+              { num: '03', title: 'Fabricamos', desc: 'A medida exacta en nuestro taller' },
+              { num: '04', title: 'Instalamos', desc: 'Coordinamos día y horario' },
+            ].map(paso => (
+              <div key={paso.num} style={{ textAlign: 'center', padding: '0 12px', position: 'relative', zIndex: 1 }}>
+                <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#D62828', color: '#fff', fontFamily:"'Bebas Neue',sans-serif", fontSize: 18, letterSpacing: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', boxShadow: '0 4px 14px rgba(214,40,40,.3)' }}>{paso.num}</div>
+                <div style={{ fontFamily:"'Playfair Display',serif", fontSize: 15, fontWeight: 700, color: '#1a1a1a', marginBottom: 6 }}>{paso.title}</div>
+                <div style={{ fontSize: 13, color: '#777', lineHeight: 1.6 }}>{paso.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA FINAL ── */}
+      <section className="section-pad" style={{ padding: '56px 20px', background: '#FAFAF8', borderTop: '1px solid #ede8e2', textAlign: 'center' }}>
+        <h2 style={{ fontFamily:"'Playfair Display',serif", fontSize: 'clamp(24px,3vw,38px)', fontWeight: 700, color: '#1a1a1a', margin: '0 0 14px' }}>¿Tenés un proyecto en mente?</h2>
+        <p style={{ fontSize: 16, color: '#666', marginBottom: 28 }}>Escribinos y te respondemos en minutos.</p>
+        <a href="https://wa.me/59897699854?text=Hola!%20Necesito%20un%20presupuesto" target="_blank" rel="noopener noreferrer"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: '#25D366', color: '#fff', borderRadius: 12, padding: '15px 30px', textDecoration: 'none', fontWeight: 700, fontSize: 17, boxShadow: '0 6px 24px rgba(37,211,102,.35)' }}>
+          💬 Escribir por WhatsApp
+        </a>
+      </section>
+
     </PublicLayout>
-  );
+  )
 }
