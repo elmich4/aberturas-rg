@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { AuthProvider } from '@/lib/auth'
 import { VendedorProvider } from '@/lib/vendedor-auth'
+import { CartProvider } from '@/lib/cart-context'
 
 const SITE_URL = 'https://aberturas-rg.vercel.app'
 const SITE_NAME = 'Aberturas RG'
@@ -148,7 +149,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <AuthProvider>
           <VendedorProvider>
-            {children}
+            <CartProvider>
+              {children}
+            </CartProvider>
           </VendedorProvider>
         </AuthProvider>
       </body>
