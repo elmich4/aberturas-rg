@@ -8,326 +8,127 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-type Categoria = { id: string; nombre: string; slug: string; orden: number }
-type Subcategoria = { id: string; categoria_id: string; nombre: string; slug: string; orden: number }
-type Producto = {
-  id: string
-  subcategoria_id: string | null
-  nombre: string
-  slug: string
-  descripcion: string | null
-  precio: number
-  unidad: string
-  imagen_url: string | null
-  activo: boolean
-  orden: number
-}
+export default function AdminTienda() {
+  const [productos, setProductos] = useState<any[]>([])
+  const [editando, setEditando] = useState<any>(null)
+  const [subcategorias, setSubcategorias] = useState<any[]>([])
 
-const UNIDADES = ['unidad', 'metro', 'metro lineal', 'm²', 'kit', 'par', 'rollo', 'bolsa', 'caja']
+  useEffect(() => {
+    cargarDatos()
+  }, [])
 
-function fmt(n: number) {
-  return new Intl.NumberFormat('es-UY', { style: 'currency', currency: 'UYU', maximumFractionDigits: 0 }).format(n)
-}
-
-const productoVacio: Omit<Producto, 'id'> = {
-  subcategoria_id: null,
-  nombre: '',
-  slug: '',
-  descripcion: '',
-  precio: 0,
-  unidad: 'unidad',
-  imagen_url: '',
-  activo: true,
-  orden: 0,
-}
-
-export default function AdminTiendaPage() {
-  const [categorias, setCategorias] = useState<Categoria[]>([])
-  const [subcategorias, setSubcategorias] = useState<Subcategoria[]>([])
-  const [productos, setProductos] = useState<Producto[]>([])
-  const [catFiltro, setCatFiltro] = useState<string>('todas')
-  const [modal, setModal] = useState<'nuevo' | 'editar' | null>(null)
-  const [form, setForm] = useState<Omit<Producto, 'id'>>(productoVacio)
-  const [editId, setEditId] = useState<string | null>(null)
-  const [guardando, setGuardando] = useState(false)
-  const [loading, setLoading] = useState(true)
-
-  async function cargar() {
-    const [{ data: cats }, { data: subs }, { data: prods }] = await Promise.all([
-      supabase.from('tienda_categorias').select('*').order('orden'),
-      supabase.from('tienda_subcategorias').select('*').order('orden'),
-      supabase.from('tienda_productos').select('*').order('orden'),
-    ])
-    setCategorias(cats || [])
-    setSubcategorias(subs || [])
+  async function cargarDatos() {
+    const { data: prods } = await supabase.from('tienda_productos').select('*').order('orden')
+    const { data: subs } = await supabase.from('tienda_subcategorias').select('*')
     setProductos(prods || [])
-    setLoading(false)
+    setSubcategorias(subs || [])
   }
 
-  useEffect(() => { cargar() }, [])
-
-  // Función para generar URL amigable
-  const generarSlug = (texto: string) => {
-    return texto.toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/[\s_-]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-  }
-
-  const productosFiltrados = productos.filter(p => {
-    if (catFiltro === 'todas') return true
-    const sub = subcategorias.find(s => s.id === p.subcategoria_id)
-    return sub?.categoria_id === catFiltro
-  })
-
-  const abrirNuevo = () => {
-    setForm(productoVacio)
-    setEditId(null)
-    setModal('nuevo')
-  }
-
-  const abrirEditar = (p: Producto) => {
-    setForm({
-      subcategoria_id: p.subcategoria_id,
-      nombre: p.nombre,
-      slug: p.slug || '',
-      descripcion: p.descripcion || '',
-      precio: p.precio,
-      unidad: p.unidad,
-      imagen_url: p.imagen_url || '',
-      activo: p.activo,
-      orden: p.orden,
-    })
-    setEditId(p.id)
-    setModal('editar')
-  }
-
-  const guardar = async () => {
-    if (!form.nombre || form.precio <= 0) return alert('Completá nombre y precio')
-    setGuardando(true)
-
-    // El slug se genera automáticamente a partir del nombre
-    const nuevoSlug = generarSlug(form.nombre)
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const { data, error } = await supabase
+      .from('tienda_productos')
+      .upsert(editando)
     
-    const datos = {
-      ...form,
-      slug: nuevoSlug,
-      descripcion: form.descripcion || null,
-      imagen_url: form.imagen_url || null,
-    }
-
-    try {
-      if (modal === 'nuevo') {
-        await supabase.from('tienda_productos').insert(datos)
-      } else if (editId) {
-        await supabase.from('tienda_productos').update(datos).eq('id', editId)
-      }
-      setModal(null)
-      cargar()
-    } catch (error) {
-      console.error("Error al guardar:", error)
-      alert("Error al guardar el producto")
-    } finally {
-      setGuardando(false)
+    if (!error) {
+      setEditando(null)
+      cargarDatos()
+      alert('Producto guardado correctamente')
     }
   }
-
-  const toggleActivo = async (p: Producto) => {
-    await supabase.from('tienda_productos').update({ activo: !p.activo }).eq('id', p.id)
-    cargar()
-  }
-
-  const eliminar = async (id: string) => {
-    if (!confirm('¿Eliminar este producto?')) return
-    await supabase.from('tienda_productos').delete().eq('id', id)
-    cargar()
-  }
-
-  const gruposSubcat = categorias.map(cat => ({
-    cat,
-    subs: subcategorias.filter(s => s.categoria_id === cat.id)
-  }))
 
   return (
-    <div className="admin-tienda">
-      <div className="at-header">
-        <div>
-          <h1>Gestión de Tienda</h1>
-          <p>{productos.length} productos en total</p>
-        </div>
-        <button className="btn-nuevo" onClick={abrirNuevo}>+ Nuevo producto</button>
-      </div>
+    <div className="admin-container">
+      <header>
+        <h1>Gestión de Productos - RG</h1>
+        <button className="btn-add" onClick={() => setEditando({ nombre: '', precio: 0, activo: true, slug: '' })}>
+          + Nuevo Producto
+        </button>
+      </header>
 
-      <div className="at-filtros">
-        <button className={catFiltro === 'todas' ? 'active' : ''} onClick={() => setCatFiltro('todas')}>Todos</button>
-        {categorias.map(cat => (
-          <button
-            key={cat.id}
-            className={catFiltro === cat.id ? 'active' : ''}
-            onClick={() => setCatFiltro(cat.id)}
-          >
-            {cat.nombre}
-          </button>
-        ))}
-      </div>
+      <table className="admin-table">
+        <thead>
+          <tr>
+            <th>Imagen</th>
+            <th>Nombre / Slug</th>
+            <th>Precio</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {productos.map(p => (
+            <tr key={p.id}>
+              <td><img src={p.imagen_url} width="50" alt="" /></td>
+              <td>
+                <strong>{p.nombre}</strong><br/>
+                <small>{p.slug}</small>
+              </td>
+              <td>${p.precio}</td>
+              <td>{p.activo ? '✅' : '❌'}</td>
+              <td><button onClick={() => setEditando(p)}>Editar</button></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
-      {loading ? (
-        <div className="at-loading">Cargando productos...</div>
-      ) : (
-        <div className="at-table-wrap">
-          <table className="at-table">
-            <thead>
-              <tr>
-                <th>Producto</th>
-                <th>Subcategoría</th>
-                <th>Precio</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {productosFiltrados.map(p => {
-                const sub = subcategorias.find(s => s.id === p.subcategoria_id)
-                return (
-                  <tr key={p.id} className={!p.activo ? 'inactivo' : ''}>
-                    <td>
-                      <div className="at-nombre">
-                        {p.imagen_url && <img src={p.imagen_url} alt="" />}
-                        <div>
-                          <strong>{p.nombre}</strong>
-                          <span className="at-slug-preview">/{p.slug || 'sin-slug'}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td>{sub?.nombre || 'General'}</td>
-                    <td>{fmt(p.precio)}</td>
-                    <td>
-                      <button className={`at-toggle ${p.activo ? 'activo' : 'inactivo'}`} onClick={() => toggleActivo(p)}>
-                        {p.activo ? 'Visible' : 'Oculto'}
-                      </button>
-                    </td>
-                    <td>
-                      <div className="at-acciones">
-                        <button onClick={() => abrirEditar(p)}>✏️</button>
-                        <button onClick={() => eliminar(p.id)}>🗑️</button>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {modal && (
-        <div className="modal-overlay" onClick={() => setModal(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>{modal === 'nuevo' ? 'Crear Producto' : 'Editar Producto'}</h2>
-              <button onClick={() => setModal(null)}>✕</button>
+      {editando && (
+        <div className="modal">
+          <form onSubmit={handleSave} className="modal-content">
+            <h2>{editando.id ? 'Editar' : 'Nuevo'} Producto</h2>
+            
+            <div className="form-group">
+              <label>Nombre del Producto</label>
+              <input value={editando.nombre} onChange={e => setEditando({...editando, nombre: e.target.value})} required />
             </div>
-            <div className="modal-body">
-              <div className="form-grid">
-                <div className="form-group full">
-                  <label>Nombre del Producto</label>
-                  <input
-                    value={form.nombre}
-                    onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-                    placeholder="Ej: Ventana de Aluminio 120x100"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Precio (UYU)</label>
-                  <input
-                    type="number"
-                    value={form.precio}
-                    onChange={e => setForm(f => ({ ...f, precio: Number(e.target.value) }))}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Unidad</label>
-                  <select value={form.unidad} onChange={e => setForm(f => ({ ...f, unidad: e.target.value }))}>
-                    {UNIDADES.map(u => <option key={u} value={u}>{u}</option>)}
-                  </select>
-                </div>
-                <div className="form-group full">
-                  <label>Subcategoría</label>
-                  <select
-                    value={form.subcategoria_id || ''}
-                    onChange={e => setForm(f => ({ ...f, subcategoria_id: e.target.value || null }))}
-                  >
-                    <option value="">Sin categoría</option>
-                    {gruposSubcat.map(({ cat, subs }) => (
-                      <optgroup key={cat.id} label={cat.nombre}>
-                        {subs.map(sub => (
-                          <option key={sub.id} value={sub.id}>{sub.nombre}</option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group full">
-                  <label>URL Imagen</label>
-                  <input
-                    value={form.imagen_url || ''}
-                    onChange={e => setForm(f => ({ ...f, imagen_url: e.target.value }))}
-                  />
-                </div>
-                <div className="form-group full">
-                  <label>Descripción Corta</label>
-                  <textarea
-                    value={form.descripcion || ''}
-                    onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
-                    rows={3}
-                  />
-                </div>
+
+            <div className="form-group">
+              <label>URL Amigable (Slug) - <i>Ej: ventana-serie-20</i></label>
+              <input value={editando.slug} onChange={e => setEditando({...editando, slug: e.target.value})} required />
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label>Precio</label>
+                <input type="number" value={editando.precio} onChange={e => setEditando({...editando, precio: Number(e.target.value)})} />
+              </div>
+              <div className="form-group">
+                <label>Unidad (m2, unidad, etc)</label>
+                <input value={editando.unidad} onChange={e => setEditando({...editando, unidad: e.target.value})} />
               </div>
             </div>
-            <div className="modal-footer">
-              <button className="btn-cancelar" onClick={() => setModal(null)}>Cancelar</button>
-              <button className="btn-guardar" onClick={guardar} disabled={guardando}>
-                {guardando ? 'Guardando...' : 'Guardar'}
-              </button>
+
+            <div className="form-group">
+              <label>Descripción Larga (Detalle)</label>
+              <textarea rows={4} value={editando.descripcion} onChange={e => setEditando({...editando, descripcion: e.target.value})} />
             </div>
-          </div>
+
+            <div className="form-group">
+              <label>URL Imagen Principal</label>
+              <input value={editando.imagen_url} onChange={e => setEditando({...editando, imagen_url: e.target.value})} />
+            </div>
+
+            <div className="form-actions">
+              <button type="button" onClick={() => setEditando(null)}>Cancelar</button>
+              <button type="submit" className="btn-save">Guardar Cambios</button>
+            </div>
+          </form>
         </div>
       )}
 
       <style jsx>{`
-        .admin-tienda { padding: 2rem; max-width: 1200px; margin: 0 auto; font-family: sans-serif; }
-        .at-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
-        .at-header h1 { margin: 0; font-size: 1.8rem; color: #333; }
-        .btn-nuevo { background: #D62828; color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600; }
-        
-        .at-filtros { display: flex; gap: 10px; margin-bottom: 2rem; overflow-x: auto; padding-bottom: 5px; }
-        .at-filtros button { padding: 0.5rem 1rem; border-radius: 20px; border: 1px solid #ddd; background: white; cursor: pointer; white-space: nowrap; }
-        .at-filtros button.active { background: #D62828; color: white; border-color: #D62828; }
-
-        .at-table-wrap { background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden; }
-        .at-table { width: 100%; border-collapse: collapse; }
-        .at-table th { background: #f8f9fa; padding: 1rem; text-align: left; font-size: 0.8rem; color: #666; text-transform: uppercase; }
-        .at-table td { padding: 1rem; border-bottom: 1px solid #eee; }
-        
-        .at-nombre { display: flex; align-items: center; gap: 1rem; }
-        .at-nombre img { width: 45px; height: 45px; object-fit: cover; border-radius: 8px; }
-        .at-slug-preview { display: block; font-size: 0.7rem; color: #999; }
-
-        .at-toggle { border: none; padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; cursor: pointer; }
-        .at-toggle.activo { background: #e6f4ea; color: #1e7e34; }
-        .at-toggle.inactivo { background: #f1f3f4; color: #5f6368; }
-
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-        .modal { background: white; width: 90%; max-width: 600px; border-radius: 16px; overflow: hidden; }
-        .modal-header { padding: 1.5rem; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
-        .modal-body { padding: 1.5rem; }
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-        .full { grid-column: 1 / -1; }
-        .form-group label { display: block; font-size: 0.85rem; margin-bottom: 0.5rem; color: #666; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.7rem; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        .modal-footer { padding: 1.5rem; background: #f8f9fa; display: flex; justify-content: flex-end; gap: 1rem; }
-        .btn-guardar { background: #D62828; color: white; border: none; padding: 0.7rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .admin-container { padding: 40px; max-width: 1000px; margin: 0 auto; font-family: sans-serif; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .admin-table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .admin-table th, .admin-table td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { background: white; padding: 40px; border-radius: 20px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-weight: 700; margin-bottom: 8px; font-size: 0.9rem; }
+        input, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .btn-add { background: #111; color: white; padding: 10px 20px; border-radius: 50px; border: none; cursor: pointer; }
+        .btn-save { background: #D62828; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-weight: 700; }
       `}</style>
     </div>
   )
