@@ -1,91 +1,175 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import PublicLayout from '@/components/public/PublicLayout'
-import { Metadata } from 'next'
-import { notFound } from 'next/navigation'
 
+// Configuración de Supabase
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-interface Props {
-  params: { slug: string }
+const WA_NUMBER = '59897699854'
+
+function fmt(n: number) {
+  return new Intl.NumberFormat('es-UY', { style: 'currency', currency: 'UYU', maximumFractionDigits: 0 }).format(n)
 }
 
-// SEO Dinámico para Google y Redes Sociales
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { data: p } = await supabase
-    .from('tienda_productos')
-    .select('nombre, descripcion, imagen_url')
-    .eq('slug', params.slug)
-    .single()
+export default function ProductoDetallePage() {
+  const { slug } = useParams()
+  const router = useRouter()
+  const [producto, setProducto] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
 
-  if (!p) return { title: 'Producto no encontrado' }
+  useEffect(() => {
+    async function cargarProducto() {
+      if (!slug) return
+      
+      const { data, error } = await supabase
+        .from('tienda_productos')
+        .select('*, tienda_subcategorias(nombre)')
+        .eq('slug', slug)
+        .single()
 
-  return {
-    title: `${p.nombre} | Aberturas RG`,
-    description: p.descripcion || `Adquiere tu ${p.nombre} en Aberturas RG. Calidad garantizada.`,
-    openGraph: {
-      title: p.nombre,
-      description: p.descripcion || '',
-      images: [p.imagen_url || ''],
-      type: 'website',
-    },
-  }
-}
+      if (error || !data) {
+        console.error("Producto no encontrado")
+      } else {
+        setProducto(data)
+      }
+      setLoading(false)
+    }
+    cargarProducto()
+  }, [slug])
 
-export default async function ProductoPage({ params }: Props) {
-  const { data: p } = await supabase
-    .from('tienda_productos')
-    .select('*, tienda_subcategorias(nombre)')
-    .eq('slug', params.slug)
-    .single()
+  if (loading) return (
+    <PublicLayout>
+      <div className="status-container">Cargando producto...</div>
+      <style jsx>{`.status-container { padding: 150px; text-align: center; font-family: sans-serif; }`}</style>
+    </PublicLayout>
+  )
 
-  if (!p) notFound()
+  if (!producto) return (
+    <PublicLayout>
+      <div className="status-container">
+        <h2>Producto no encontrado</h2>
+        <button onClick={() => router.push('/tienda')}>Volver a la tienda</button>
+      </div>
+      <style jsx>{`.status-container { padding: 150px; text-align: center; font-family: sans-serif; }`}</style>
+    </PublicLayout>
+  )
 
-  const fmt = (n: number) => new Intl.NumberFormat('es-UY', { style: 'currency', currency: 'UYU', maximumFractionDigits: 0 }).format(n)
+  const mensajeWA = `¡Hola! Me interesa obtener más información sobre el producto: ${producto.nombre}`
 
   return (
     <PublicLayout>
-      <div className="product-view">
+      <div className="detalle-wrapper">
         <div className="container">
-          <div className="product-grid">
-            <div className="image-side">
-              <img src={p.imagen_url || '/placeholder.png'} alt={p.nombre} />
-            </div>
-            <div className="info-side">
-              <nav className="breadcrumb">Tienda / {p.tienda_subcategorias?.nombre}</nav>
-              <h1>{p.nombre}</h1>
-              <p className="price">{fmt(p.precio)} <small>/ {p.unidad}</small></p>
-              <div className="description">
-                <h3>Descripción</h3>
-                <p>{p.descripcion_larga || p.descripcion}</p>
+          <button onClick={() => router.back()} className="btn-volver">← Volver atrás</button>
+          
+          <div className="detalle-grid">
+            {/* Columna Imagen */}
+            <div className="col-image">
+              <div className="main-img-card">
+                <img src={producto.imagen_url || '/placeholder.png'} alt={producto.nombre} />
               </div>
-              <a 
-                href={`https://wa.me/59897699854?text=${encodeURIComponent(`Hola! Me interesa el producto: ${p.nombre}`)}`}
-                target="_blank"
-                className="btn-wa-direct"
-              >
-                Consultar por WhatsApp
-              </a>
+            </div>
+
+            {/* Columna Información */}
+            <div className="col-info">
+              <span className="subcat-badge">{producto.tienda_subcategorias?.nombre || 'General'}</span>
+              <h1>{producto.nombre}</h1>
+              
+              <div className="price-box">
+                <span className="price-amount">{fmt(producto.precio)}</span>
+                <span className="price-unit">/ {producto.unidad}</span>
+              </div>
+
+              <div className="content-section">
+                <h3>Descripción</h3>
+                <p>{producto.descripcion_larga || producto.descripcion || 'Sin descripción disponible para este producto.'}</p>
+              </div>
+
+              {producto.especificaciones && (
+                <div className="content-section">
+                  <h3>Ficha Técnica</h3>
+                  <div className="specs-grid">
+                    {Object.entries(producto.especificaciones).map(([key, val]: any) => (
+                      <div key={key} className="spec-item">
+                        <strong>{key}:</strong> {val}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="action-area">
+                <a 
+                  href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(mensajeWA)}`}
+                  target="_blank"
+                  className="btn-whatsapp"
+                >
+                  Consultar por WhatsApp
+                </a>
+              </div>
             </div>
           </div>
         </div>
 
         <style jsx>{`
-          .product-view { padding: 120px 20px 80px; background: #fdfcf9; min-height: 100vh; }
-          .container { max-width: 1100px; margin: 0 auto; }
-          .product-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; }
-          .image-side img { width: 100%; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
-          .breadcrumb { font-size: 0.8rem; color: #999; text-transform: uppercase; margin-bottom: 10px; }
-          h1 { font-family: 'Playfair Display', serif; font-size: 3rem; margin: 0; }
-          .price { font-size: 2rem; color: #D62828; font-weight: 800; margin: 20px 0; }
-          .description h3 { font-size: 1rem; text-transform: uppercase; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-          .btn-wa-direct { 
-            display: inline-block; background: #25D366; color: white; padding: 15px 30px; 
-            border-radius: 50px; text-decoration: none; font-weight: 700; margin-top: 30px;
+          .detalle-wrapper { padding: 120px 20px 80px; background: #fdfcf9; min-height: 100vh; }
+          .container { max-width: 1200px; margin: 0 auto; }
+          
+          .btn-volver { 
+            background: none; border: none; color: #888; font-weight: 600; 
+            cursor: pointer; margin-bottom: 30px; transition: 0.2s; 
           }
-          @media (max-width: 800px) { .product-grid { grid-template-columns: 1fr; } }
+          .btn-volver:hover { color: #D62828; }
+
+          .detalle-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 60px; }
+
+          .main-img-card { 
+            background: white; border-radius: 30px; overflow: hidden; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.05); position: sticky; top: 120px;
+          }
+          .main-img-card img { width: 100%; display: block; object-fit: cover; }
+
+          .subcat-badge { 
+            display: inline-block; background: #f0f0f0; color: #D62828; 
+            padding: 6px 16px; border-radius: 50px; font-size: 0.8rem; 
+            font-weight: 800; text-transform: uppercase; margin-bottom: 15px;
+          }
+
+          h1 { font-family: 'Playfair Display', serif; font-size: 3.2rem; color: #1a1a1a; margin: 0 0 20px; line-height: 1.1; }
+
+          .price-box { display: flex; align-items: baseline; gap: 10px; margin-bottom: 40px; }
+          .price-amount { font-size: 2.8rem; font-weight: 900; color: #D62828; }
+          .price-unit { color: #999; font-weight: 600; font-size: 1.1rem; }
+
+          .content-section { margin-bottom: 40px; }
+          .content-section h3 { 
+            font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1.5px; 
+            color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px; 
+          }
+          .content-section p { line-height: 1.8; color: #555; font-size: 1.05rem; }
+
+          .specs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+          .spec-item { font-size: 0.9rem; color: #666; padding: 10px; background: #fff; border-radius: 8px; border: 1px solid #f0f0f0; }
+
+          .btn-whatsapp { 
+            display: block; width: 100%; text-align: center; background: #25D366; 
+            color: white; padding: 22px; border-radius: 50px; text-decoration: none; 
+            font-weight: 800; font-size: 1.2rem; box-shadow: 0 10px 30px rgba(37,211,102,0.3);
+            transition: 0.3s;
+          }
+          .btn-whatsapp:hover { transform: translateY(-3px); box-shadow: 0 15px 40px rgba(37,211,102,0.4); }
+
+          @media (max-width: 950px) {
+            .detalle-grid { grid-template-columns: 1fr; }
+            h1 { font-size: 2.5rem; }
+            .detalle-wrapper { padding-top: 100px; }
+          }
         `}</style>
       </div>
     </PublicLayout>
