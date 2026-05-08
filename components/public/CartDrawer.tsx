@@ -46,6 +46,7 @@ export default function CartDrawer() {
         nombre: i.nombre,
         precio: i.precio,
         unidad: i.unidad,
+        imagen_url: i.imagen_url, // ← se guarda la imagen para verla luego en el admin
         cantidad: i.cantidad,
         subtotal: i.precio * i.cantidad,
       }))
