@@ -24,23 +24,45 @@ function fmt(n: number) {
 export default function TiendaPage() {
   const [categorias, setCategorias] = useState<any[]>([])
   const [productos, setProductos] = useState<any[]>([])
+  // Map producto_id → { count, minPrecio }
+  const [variantesPorProducto, setVariantesPorProducto] = useState<
+    Record<string, { count: number; minPrecio: number }>
+  >({})
   const [catActiva, setCatActiva] = useState('todas')
   const [loading, setLoading] = useState(true)
   const { addItem } = useCart()
 
   useEffect(() => {
     async function cargar() {
-      const { data: cats } = await supabase
-        .from('tienda_categorias')
-        .select('*')
-        .order('orden')
-      const { data: prods } = await supabase
-        .from('tienda_productos')
-        .select('*, tienda_subcategorias(categoria_id)')
-        .eq('activo', true)
-        .order('orden')
+      const [{ data: cats }, { data: prods }, { data: varsRaw }] =
+        await Promise.all([
+          supabase.from('tienda_categorias').select('*').order('orden'),
+          supabase
+            .from('tienda_productos')
+            .select('*, tienda_subcategorias(categoria_id)')
+            .eq('activo', true)
+            .order('orden'),
+          supabase
+            .from('tienda_producto_variantes')
+            .select('producto_id, precio')
+            .eq('activo', true),
+        ])
+
+      // Agrupar variantes por producto_id
+      const mapa: Record<string, { count: number; minPrecio: number }> = {}
+      ;(varsRaw || []).forEach((v: any) => {
+        const pid = v.producto_id
+        const precio = Number(v.precio) || 0
+        if (!mapa[pid]) {
+          mapa[pid] = { count: 0, minPrecio: precio }
+        }
+        mapa[pid].count += 1
+        if (precio < mapa[pid].minPrecio) mapa[pid].minPrecio = precio
+      })
+
       setCategorias(cats || [])
       setProductos(prods || [])
+      setVariantesPorProducto(mapa)
       setLoading(false)
     }
     cargar()
@@ -56,8 +78,13 @@ export default function TiendaPage() {
   const handleAdd = (e: React.MouseEvent, p: any) => {
     e.preventDefault()
     e.stopPropagation()
+    // Si tiene variantes, no se debería poder llegar acá (botón deshabilitado),
+    // pero por las dudas:
+    if (variantesPorProducto[p.id]?.count > 0) return
     addItem({
-      id: p.id,
+      productoId: p.id,
+      varianteId: null,
+      varianteNombre: null,
       slug: p.slug,
       nombre: p.nombre,
       precio: p.precio,
@@ -109,36 +136,58 @@ export default function TiendaPage() {
               <div className="loader">No hay productos en esta categoría</div>
             ) : (
               <div className="products-grid">
-                {productosFiltrados.map(p => (
-                  <Link
-                    href={`/tienda/${p.slug}`}
-                    key={p.id}
-                    className="product-card"
-                  >
-                    <div className="img-holder">
-                      <img
-                        src={p.imagen_url || '/placeholder.png'}
-                        alt={p.nombre}
-                      />
-                    </div>
-                    <div className="info">
-                      <h3>{p.nombre}</h3>
-                      <p className="price">
-                        {fmt(p.precio)} <small>/ {p.unidad}</small>
-                      </p>
-                      <div className="actions">
-                        <span className="btn-ver">Ver detalle</span>
-                        <button
-                          className="btn-add"
-                          onClick={e => handleAdd(e, p)}
-                          aria-label="Agregar al carrito"
-                        >
-                          + Agregar
-                        </button>
+                {productosFiltrados.map(p => {
+                  const info = variantesPorProducto[p.id]
+                  const tieneVariantes = (info?.count ?? 0) > 0
+                  // Precio a mostrar:
+                  // - Con variantes: el min de variantes (o precio_desde si está)
+                  // - Sin variantes: el precio normal
+                  const precioMostrar = tieneVariantes
+                    ? p.precio_desde ?? info!.minPrecio
+                    : p.precio
+                  return (
+                    <Link
+                      href={`/tienda/${p.slug}`}
+                      key={p.id}
+                      className="product-card"
+                    >
+                      <div className="img-holder">
+                        <img
+                          src={p.imagen_url || '/placeholder.png'}
+                          alt={p.nombre}
+                        />
                       </div>
-                    </div>
-                  </Link>
-                ))}
+                      <div className="info">
+                        <h3>{p.nombre}</h3>
+                        <p className="price">
+                          {tieneVariantes && (
+                            <span className="price-desde">Desde </span>
+                          )}
+                          {fmt(precioMostrar)} <small>/ {p.unidad}</small>
+                        </p>
+                        <div className="actions">
+                          <span className="btn-ver">Ver detalle</span>
+                          {tieneVariantes ? (
+                            <span
+                              className="btn-add disabled"
+                              title="Elegí una opción en el detalle"
+                            >
+                              Elegir
+                            </span>
+                          ) : (
+                            <button
+                              className="btn-add"
+                              onClick={e => handleAdd(e, p)}
+                              aria-label="Agregar al carrito"
+                            >
+                              + Agregar
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+                  )
+                })}
               </div>
             )}
           </main>
@@ -243,6 +292,7 @@ export default function TiendaPage() {
             cursor: pointer;
             color: #1a1a1a;
             padding: 12px;
+            text-decoration: none;
           }
           .product-card:hover {
             transform: translateY(-5px);
@@ -287,6 +337,14 @@ export default function TiendaPage() {
             color: #999;
             font-weight: 500;
           }
+          .price-desde {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-right: 4px;
+          }
           .actions {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -320,10 +378,17 @@ export default function TiendaPage() {
             font-weight: 800;
             cursor: pointer;
             transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
           }
-          .btn-add:hover {
+          .btn-add:hover:not(.disabled) {
             background: #a51d1d;
             transform: scale(1.03);
+          }
+          .btn-add.disabled {
+            background: #f3a3a3;
+            cursor: pointer;
           }
 
           @media (max-width: 900px) {

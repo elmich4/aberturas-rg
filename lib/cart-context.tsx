@@ -3,7 +3,10 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 
 export type CartItem = {
-  id: string         // id del producto en Supabase
+  id: string                       // identificador único en el carrito (productoId + varianteId)
+  productoId: string                // id real del producto en Supabase
+  varianteId: string | null         // id de la variante elegida (null si el producto no tiene variantes)
+  varianteNombre: string | null     // ej "1.00 x 1.00", "Negro"
   slug: string
   nombre: string
   precio: number
@@ -14,7 +17,7 @@ export type CartItem = {
 
 type CartContextType = {
   items: CartItem[]
-  addItem: (item: Omit<CartItem, 'cantidad'>, cantidad?: number) => void
+  addItem: (item: Omit<CartItem, 'cantidad' | 'id'>, cantidad?: number) => void
   removeItem: (id: string) => void
   updateCantidad: (id: string, cantidad: number) => void
   clearCart: () => void
@@ -28,7 +31,13 @@ type CartContextType = {
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
-const STORAGE_KEY = 'rg_cart_v1'
+// Bumpeo la versión del storage porque el modelo cambió y los items viejos
+// no tienen productoId/varianteId. Si alguien tiene carrito viejo se descarta.
+const STORAGE_KEY = 'rg_cart_v2'
+
+function buildItemId(productoId: string, varianteId: string | null) {
+  return varianteId ? `${productoId}::${varianteId}` : productoId
+}
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
@@ -41,8 +50,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const raw = localStorage.getItem(STORAGE_KEY)
       if (raw) {
         const parsed = JSON.parse(raw)
-        if (Array.isArray(parsed)) setItems(parsed)
+        if (Array.isArray(parsed)) {
+          // Filtro defensivo: si por algún motivo hay items malformados, los descarto
+          const validos = parsed.filter(
+            (i: any) =>
+              i &&
+              typeof i.id === 'string' &&
+              typeof i.productoId === 'string' &&
+              typeof i.precio === 'number'
+          )
+          setItems(validos)
+        }
       }
+      // Limpiar versión vieja si existía
+      localStorage.removeItem('rg_cart_v1')
     } catch (e) {
       console.warn('No se pudo leer carrito de localStorage', e)
     }
@@ -59,15 +80,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [items, hydrated])
 
-  const addItem = (item: Omit<CartItem, 'cantidad'>, cantidad = 1) => {
+  const addItem = (
+    item: Omit<CartItem, 'cantidad' | 'id'>,
+    cantidad = 1
+  ) => {
+    const itemId = buildItemId(item.productoId, item.varianteId)
     setItems(prev => {
-      const existente = prev.find(i => i.id === item.id)
+      const existente = prev.find(i => i.id === itemId)
       if (existente) {
         return prev.map(i =>
-          i.id === item.id ? { ...i, cantidad: i.cantidad + cantidad } : i
+          i.id === itemId ? { ...i, cantidad: i.cantidad + cantidad } : i
         )
       }
-      return [...prev, { ...item, cantidad }]
+      return [...prev, { ...item, id: itemId, cantidad }]
     })
     setIsOpen(true) // abrir drawer al agregar
   }

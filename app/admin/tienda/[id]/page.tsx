@@ -15,6 +15,14 @@ const BUCKET = 'tienda-productos'
 
 type SpecRow = { key: string; value: string }
 
+type VarianteRow = {
+  id?: string                  // si existe en la BD
+  _localId: string             // id estable en el cliente (para keys de React)
+  nombre: string
+  precio: number
+  orden: number
+}
+
 type Producto = {
   id?: string
   nombre: string
@@ -52,6 +60,10 @@ const PRODUCTO_INICIAL: Producto = {
   orden: 0,
 }
 
+function nuevoLocalId() {
+  return Math.random().toString(36).slice(2, 10)
+}
+
 export default function ProductoEditPage() {
   const params = useParams()
   const router = useRouter()
@@ -64,6 +76,7 @@ export default function ProductoEditPage() {
   const [slugsExistentes, setSlugsExistentes] = useState<string[]>([])
 
   const [specs, setSpecs] = useState<SpecRow[]>([{ key: '', value: '' }])
+  const [variantes, setVariantes] = useState<VarianteRow[]>([])
   const [slugManual, setSlugManual] = useState(false)
 
   const [loading, setLoading] = useState(true)
@@ -94,6 +107,7 @@ export default function ProductoEditPage() {
     if (esNuevo) {
       setProducto(PRODUCTO_INICIAL)
       setSpecs([{ key: '', value: '' }])
+      setVariantes([])
       setSlugsExistentes((slugsRaw || []).map(r => r.slug).filter(Boolean))
       setLoading(false)
       return
@@ -127,6 +141,23 @@ export default function ProductoEditPage() {
       value: String(v),
     }))
     setSpecs(filas.length > 0 ? filas : [{ key: '', value: '' }])
+
+    // Variantes existentes
+    const { data: variantesData } = await supabase
+      .from('tienda_producto_variantes')
+      .select('*')
+      .eq('producto_id', data.id)
+      .order('orden')
+
+    setVariantes(
+      (variantesData || []).map((v: any) => ({
+        id: v.id,
+        _localId: nuevoLocalId(),
+        nombre: v.nombre,
+        precio: Number(v.precio),
+        orden: v.orden ?? 0,
+      }))
+    )
 
     // Slugs existentes (excluyendo el del producto que estamos editando)
     setSlugsExistentes(
@@ -179,6 +210,47 @@ export default function ProductoEditPage() {
       if (k && v) obj[k] = v
     })
     return obj
+  }
+
+  // ============ VARIANTES ============
+  function addVariante() {
+    setVariantes(prev => [
+      ...prev,
+      {
+        _localId: nuevoLocalId(),
+        nombre: '',
+        precio: 0,
+        orden: prev.length,
+      },
+    ])
+  }
+  function updateVariante(
+    localId: string,
+    field: 'nombre' | 'precio',
+    val: string
+  ) {
+    setVariantes(prev =>
+      prev.map(v => {
+        if (v._localId !== localId) return v
+        if (field === 'precio') {
+          return { ...v, precio: Number(val) || 0 }
+        }
+        return { ...v, nombre: val }
+      })
+    )
+  }
+  function removeVariante(localId: string) {
+    setVariantes(prev => prev.filter(v => v._localId !== localId))
+  }
+  function moverVariante(localId: string, dir: -1 | 1) {
+    setVariantes(prev => {
+      const idx = prev.findIndex(v => v._localId === localId)
+      const nuevoIdx = idx + dir
+      if (idx < 0 || nuevoIdx < 0 || nuevoIdx >= prev.length) return prev
+      const arr = [...prev]
+      ;[arr[idx], arr[nuevoIdx]] = [arr[nuevoIdx], arr[idx]]
+      return arr
+    })
   }
 
   // ============ IMAGENES ============
@@ -279,6 +351,16 @@ export default function ProductoEditPage() {
       return
     }
 
+    // Validar variantes: si hay alguna agregada, todas deben tener nombre
+    const variantesValidas = variantes.filter(v => v.nombre.trim() !== '')
+    const variantesIncompletas = variantes.some(
+      v => v.nombre.trim() === '' && v.precio > 0
+    )
+    if (variantesIncompletas) {
+      setError('Hay variantes con precio pero sin nombre. Completalas o eliminalas.')
+      return
+    }
+
     setSaving(true)
 
     const payload: any = {
@@ -300,12 +382,14 @@ export default function ProductoEditPage() {
     }
 
     let result
+    let productoId: string | null = null
     if (esNuevo) {
       result = await supabase
         .from('tienda_productos')
         .insert(payload)
         .select('id')
         .single()
+      productoId = result.data?.id ?? null
     } else {
       result = await supabase
         .from('tienda_productos')
@@ -313,15 +397,58 @@ export default function ProductoEditPage() {
         .eq('id', idParam)
         .select('id')
         .single()
+      productoId = idParam
     }
 
-    setSaving(false)
-
     if (result.error) {
+      setSaving(false)
       setError('Error al guardar: ' + result.error.message)
       return
     }
 
+    // ===== Sincronizar variantes (estrategia simple: borrar todas y reinsertar)
+    // Es seguro porque no hay FK desde otras tablas hacia variantes; los items
+    // del carrito viven en localStorage del cliente.
+    if (productoId) {
+      const { error: delErr } = await supabase
+        .from('tienda_producto_variantes')
+        .delete()
+        .eq('producto_id', productoId)
+
+      if (delErr) {
+        setSaving(false)
+        setError(
+          'El producto se guardó pero falló al actualizar variantes: ' +
+            delErr.message
+        )
+        return
+      }
+
+      if (variantesValidas.length > 0) {
+        const insertPayload = variantesValidas.map((v, idx) => ({
+          producto_id: productoId,
+          nombre: v.nombre.trim(),
+          precio: v.precio || 0,
+          orden: idx,
+          activo: true,
+        }))
+
+        const { error: insErr } = await supabase
+          .from('tienda_producto_variantes')
+          .insert(insertPayload)
+
+        if (insErr) {
+          setSaving(false)
+          setError(
+            'El producto se guardó pero falló al insertar variantes: ' +
+              insErr.message
+          )
+          return
+        }
+      }
+    }
+
+    setSaving(false)
     router.push('/admin/tienda')
   }
 
@@ -540,6 +667,86 @@ export default function ProductoEditPage() {
           </section>
 
           <section className="card">
+            <h2>Variantes</h2>
+            <p className="hint">
+              Si el producto tiene distintas medidas, colores o versiones con
+              precios diferentes, agregalas acá. El cliente debe elegir una al
+              comprar. Si no agregás ninguna, se usa el precio principal.
+            </p>
+
+            {variantes.length === 0 ? (
+              <div className="empty-variantes">
+                Este producto no tiene variantes. El cliente comprará al precio
+                principal.
+              </div>
+            ) : (
+              <div className="variantes-list">
+                <div className="variante-row variante-header">
+                  <span>Nombre / Medida</span>
+                  <span>Precio</span>
+                  <span></span>
+                </div>
+                {variantes.map((v, idx) => (
+                  <div key={v._localId} className="variante-row">
+                    <input
+                      type="text"
+                      placeholder="Ej: 1.00 x 1.00"
+                      value={v.nombre}
+                      onChange={e =>
+                        updateVariante(v._localId, 'nombre', e.target.value)
+                      }
+                    />
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      placeholder="0"
+                      value={v.precio || ''}
+                      onChange={e =>
+                        updateVariante(v._localId, 'precio', e.target.value)
+                      }
+                    />
+                    <div className="variante-actions">
+                      <button
+                        type="button"
+                        onClick={() => moverVariante(v._localId, -1)}
+                        disabled={idx === 0}
+                        title="Subir"
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moverVariante(v._localId, 1)}
+                        disabled={idx === variantes.length - 1}
+                        title="Bajar"
+                      >
+                        ↓
+                      </button>
+                      <button
+                        type="button"
+                        className="del"
+                        onClick={() => removeVariante(v._localId)}
+                        title="Eliminar variante"
+                      >
+                        🗑
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <button
+              type="button"
+              className="btn-add-variante"
+              onClick={addVariante}
+            >
+              + Agregar variante
+            </button>
+          </section>
+
+          <section className="card">
             <h2>Especificaciones técnicas</h2>
             <p className="hint">
               Pares clave/valor que se muestran en la ficha técnica del
@@ -658,8 +865,9 @@ export default function ProductoEditPage() {
                   placeholder="Ej: 2500"
                 />
                 <small>
-                  Si el producto tiene variantes con distintos precios, este es
-                  el menor (mostrado como "desde $X").
+                  Si el producto tiene variantes, el listado calcula el "desde"
+                  automáticamente con el precio menor. Este campo es solo para
+                  forzar uno distinto.
                 </small>
               </label>
             </div>
@@ -938,6 +1146,83 @@ export default function ProductoEditPage() {
           background: #d62828;
         }
 
+        /* VARIANTES */
+        .empty-variantes {
+          background: #fafafa;
+          border: 1px dashed #e0e0e0;
+          border-radius: 10px;
+          padding: 16px;
+          font-size: 0.85rem;
+          color: #888;
+          text-align: center;
+        }
+        .variantes-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-bottom: 4px;
+        }
+        .variante-row {
+          display: grid;
+          grid-template-columns: 1.4fr 1fr 120px;
+          gap: 8px;
+          align-items: center;
+        }
+        .variante-row input {
+          margin: 0;
+        }
+        .variante-header {
+          font-size: 0.75rem;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          color: #999;
+          padding: 0 4px;
+        }
+        .variante-actions {
+          display: flex;
+          gap: 4px;
+          margin-top: 6px;
+        }
+        .variante-actions button {
+          flex: 1;
+          height: 36px;
+          border: 1px solid #eee;
+          background: white;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 0.9rem;
+          color: #666;
+        }
+        .variante-actions button:hover:not(:disabled) {
+          border-color: #ccc;
+          color: #333;
+        }
+        .variante-actions button:disabled {
+          opacity: 0.3;
+          cursor: not-allowed;
+        }
+        .variante-actions .del:hover {
+          background: #fee2e2;
+          color: #b91c1c;
+          border-color: #fecaca;
+        }
+        .btn-add-variante {
+          margin-top: 12px;
+          background: white;
+          border: 1px dashed #ccc;
+          padding: 10px;
+          width: 100%;
+          border-radius: 8px;
+          font-size: 0.85rem;
+          color: #666;
+          cursor: pointer;
+          font-weight: 600;
+        }
+        .btn-add-variante:hover {
+          border-color: #d62828;
+          color: #d62828;
+        }
+
         /* SPECS */
         .specs-list {
           display: flex;
@@ -1044,6 +1329,12 @@ export default function ProductoEditPage() {
           }
           .card.sticky {
             position: static;
+          }
+          .variante-row {
+            grid-template-columns: 1fr 1fr;
+          }
+          .variante-actions {
+            grid-column: 1 / -1;
           }
         }
       `}</style>

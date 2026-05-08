@@ -15,6 +15,13 @@ const supabase = createClient(
 
 const WA_NUMBER = '59897699854'
 
+type Variante = {
+  id: string
+  nombre: string
+  precio: number
+  orden: number
+}
+
 function fmt(n: number) {
   return new Intl.NumberFormat('es-UY', {
     style: 'currency',
@@ -27,6 +34,8 @@ export default function ProductoDetallePage() {
   const { slug } = useParams()
   const router = useRouter()
   const [producto, setProducto] = useState<any>(null)
+  const [variantes, setVariantes] = useState<Variante[]>([])
+  const [varianteId, setVarianteId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [cantidad, setCantidad] = useState(1)
   const [imagenActiva, setImagenActiva] = useState<string>('')
@@ -45,14 +54,34 @@ export default function ProductoDetallePage() {
 
       if (error || !data) {
         console.error('Producto no encontrado')
-      } else {
-        setProducto(data)
-        const inicial =
-          data.imagen_url ||
-          (Array.isArray(data.imagenes) && data.imagenes[0]) ||
-          ''
-        setImagenActiva(inicial)
+        setLoading(false)
+        return
       }
+
+      setProducto(data)
+      const inicial =
+        data.imagen_url ||
+        (Array.isArray(data.imagenes) && data.imagenes[0]) ||
+        ''
+      setImagenActiva(inicial)
+
+      // Cargar variantes
+      const { data: vars } = await supabase
+        .from('tienda_producto_variantes')
+        .select('*')
+        .eq('producto_id', data.id)
+        .eq('activo', true)
+        .order('orden')
+
+      setVariantes(
+        (vars || []).map((v: any) => ({
+          id: v.id,
+          nombre: v.nombre,
+          precio: Number(v.precio),
+          orden: v.orden ?? 0,
+        }))
+      )
+
       setLoading(false)
     }
     cargarProducto()
@@ -69,6 +98,26 @@ export default function ProductoDetallePage() {
     }
     return arr
   }, [producto])
+
+  const varianteSeleccionada = useMemo(
+    () => variantes.find(v => v.id === varianteId) || null,
+    [variantes, varianteId]
+  )
+
+  const tieneVariantes = variantes.length > 0
+  const requiereSeleccion = tieneVariantes && !varianteSeleccionada
+
+  // Precio actual a mostrar:
+  // - Si tiene variantes y eligió una → precio de la variante
+  // - Si tiene variantes y no eligió → precio de la más barata (preview)
+  // - Si no tiene variantes → precio del producto
+  const precioActual = useMemo(() => {
+    if (varianteSeleccionada) return varianteSeleccionada.precio
+    if (tieneVariantes) {
+      return Math.min(...variantes.map(v => v.precio))
+    }
+    return producto?.precio ?? 0
+  }, [producto, variantes, varianteSeleccionada, tieneVariantes])
 
   if (loading)
     return (
@@ -100,22 +149,28 @@ export default function ProductoDetallePage() {
     )
 
   const handleAddToCart = () => {
+    if (requiereSeleccion) return // botón debería estar deshabilitado igual
     addItem(
       {
-        id: producto.id,
+        productoId: producto.id,
+        varianteId: varianteSeleccionada?.id ?? null,
+        varianteNombre: varianteSeleccionada?.nombre ?? null,
         slug: producto.slug,
         nombre: producto.nombre,
-        precio: producto.precio,
+        precio: precioActual,
         unidad: producto.unidad || 'unidad',
         imagen_url: producto.imagen_url || galeria[0] || '',
       },
       cantidad
     )
-    setFeedback(`✓ Agregado al carrito (${cantidad})`)
+    const sufijo = varianteSeleccionada ? ` — ${varianteSeleccionada.nombre}` : ''
+    setFeedback(`✓ Agregado al carrito (${cantidad})${sufijo}`)
     setTimeout(() => setFeedback(null), 2500)
   }
 
-  const mensajeWA = `¡Hola! Me interesa el producto: ${producto.nombre}`
+  const mensajeWA = `¡Hola! Me interesa el producto: ${producto.nombre}${
+    varianteSeleccionada ? ` (${varianteSeleccionada.nombre})` : ''
+  }`
 
   return (
     <PublicLayout>
@@ -157,7 +212,10 @@ export default function ProductoDetallePage() {
               <h1>{producto.nombre}</h1>
 
               <div className="price-box">
-                <span className="price-amount">{fmt(producto.precio)}</span>
+                {tieneVariantes && !varianteSeleccionada && (
+                  <span className="price-label">Desde</span>
+                )}
+                <span className="price-amount">{fmt(precioActual)}</span>
                 <span className="price-unit">/ {producto.unidad}</span>
               </div>
 
@@ -169,6 +227,32 @@ export default function ProductoDetallePage() {
                     'Sin descripción disponible para este producto.'}
                 </p>
               </div>
+
+              {tieneVariantes && (
+                <div className="content-section">
+                  <h3>
+                    Elegí una opción
+                    {requiereSeleccion && (
+                      <span className="required-tag">requerido</span>
+                    )}
+                  </h3>
+                  <div className="variantes-pills">
+                    {variantes.map(v => (
+                      <button
+                        key={v.id}
+                        type="button"
+                        className={`variante-pill ${
+                          varianteId === v.id ? 'active' : ''
+                        }`}
+                        onClick={() => setVarianteId(v.id)}
+                      >
+                        <span className="vp-nombre">{v.nombre}</span>
+                        <span className="vp-precio">{fmt(v.precio)}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {producto.especificaciones &&
                 Object.keys(producto.especificaciones).length > 0 && (
@@ -213,8 +297,14 @@ export default function ProductoDetallePage() {
                   </div>
                 </div>
 
-                <button className="btn-cart" onClick={handleAddToCart}>
-                  Agregar al carrito — {fmt(producto.precio * cantidad)}
+                <button
+                  className="btn-cart"
+                  onClick={handleAddToCart}
+                  disabled={requiereSeleccion}
+                >
+                  {requiereSeleccion
+                    ? 'Elegí una opción primero'
+                    : `Agregar al carrito — ${fmt(precioActual * cantidad)}`}
                 </button>
 
                 {feedback && <div className="feedback">{feedback}</div>}
@@ -343,6 +433,14 @@ export default function ProductoDetallePage() {
             align-items: baseline;
             gap: 10px;
             margin-bottom: 40px;
+            flex-wrap: wrap;
+          }
+          .price-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 700;
+            color: #888;
           }
           .price-amount {
             font-size: 2.8rem;
@@ -366,12 +464,65 @@ export default function ProductoDetallePage() {
             border-bottom: 1px solid #eee;
             padding-bottom: 10px;
             margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+          }
+          .required-tag {
+            background: #fef2f2;
+            color: #b91c1c;
+            font-size: 0.65rem;
+            padding: 3px 8px;
+            border-radius: 50px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
           }
           .content-section p {
             line-height: 1.8;
             color: #555;
             font-size: 1.05rem;
             white-space: pre-wrap;
+          }
+
+          .variantes-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+          }
+          .variante-pill {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+            background: white;
+            border: 2px solid #eee;
+            border-radius: 14px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: 0.2s;
+            min-width: 110px;
+          }
+          .variante-pill:hover {
+            border-color: #ccc;
+          }
+          .variante-pill.active {
+            border-color: #d62828;
+            background: #fff5f5;
+            box-shadow: 0 4px 12px rgba(214, 40, 40, 0.12);
+          }
+          .vp-nombre {
+            font-weight: 700;
+            color: #1a1a1a;
+            font-size: 0.92rem;
+          }
+          .vp-precio {
+            font-size: 0.78rem;
+            color: #d62828;
+            font-weight: 700;
+          }
+          .variante-pill.active .vp-precio {
+            color: #d62828;
           }
 
           .specs-grid {
@@ -454,9 +605,14 @@ export default function ProductoDetallePage() {
             transition: 0.2s;
             margin-bottom: 12px;
           }
-          .btn-cart:hover {
+          .btn-cart:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 14px 32px rgba(214, 40, 40, 0.35);
+          }
+          .btn-cart:disabled {
+            background: #d4a3a3;
+            cursor: not-allowed;
+            box-shadow: none;
           }
 
           .feedback {
