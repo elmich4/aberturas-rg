@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import PublicLayout from '@/components/public/PublicLayout'
@@ -29,6 +29,7 @@ export default function ProductoDetallePage() {
   const [producto, setProducto] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [cantidad, setCantidad] = useState(1)
+  const [imagenActiva, setImagenActiva] = useState<string>('')
   const [feedback, setFeedback] = useState<string | null>(null)
 
   const { addItem } = useCart()
@@ -46,11 +47,28 @@ export default function ProductoDetallePage() {
         console.error('Producto no encontrado')
       } else {
         setProducto(data)
+        const inicial =
+          data.imagen_url ||
+          (Array.isArray(data.imagenes) && data.imagenes[0]) ||
+          ''
+        setImagenActiva(inicial)
       }
       setLoading(false)
     }
     cargarProducto()
   }, [slug])
+
+  const galeria = useMemo<string[]>(() => {
+    if (!producto) return []
+    const arr: string[] = []
+    if (producto.imagen_url) arr.push(producto.imagen_url)
+    if (Array.isArray(producto.imagenes)) {
+      producto.imagenes.forEach((u: string) => {
+        if (u && !arr.includes(u)) arr.push(u)
+      })
+    }
+    return arr
+  }, [producto])
 
   if (loading)
     return (
@@ -89,7 +107,7 @@ export default function ProductoDetallePage() {
         nombre: producto.nombre,
         precio: producto.precio,
         unidad: producto.unidad || 'unidad',
-        imagen_url: producto.imagen_url,
+        imagen_url: producto.imagen_url || galeria[0] || '',
       },
       cantidad
     )
@@ -111,10 +129,25 @@ export default function ProductoDetallePage() {
             <div className="col-image">
               <div className="main-img-card">
                 <img
-                  src={producto.imagen_url || '/placeholder.png'}
+                  src={imagenActiva || '/placeholder.png'}
                   alt={producto.nombre}
                 />
               </div>
+
+              {galeria.length > 1 && (
+                <div className="thumbs">
+                  {galeria.map(url => (
+                    <button
+                      key={url}
+                      type="button"
+                      className={`thumb ${imagenActiva === url ? 'active' : ''}`}
+                      onClick={() => setImagenActiva(url)}
+                    >
+                      <img src={url} alt="" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="col-info">
@@ -232,18 +265,55 @@ export default function ProductoDetallePage() {
             gap: 60px;
           }
 
+          .col-image {
+            position: sticky;
+            top: 120px;
+            align-self: start;
+          }
           .main-img-card {
             background: white;
             border-radius: 30px;
             overflow: hidden;
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.05);
-            position: sticky;
-            top: 120px;
           }
           .main-img-card img {
             width: 100%;
             display: block;
             object-fit: cover;
+            aspect-ratio: 4 / 3;
+          }
+
+          .thumbs {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            overflow-x: auto;
+            padding: 4px 2px;
+          }
+          .thumb {
+            flex: 0 0 auto;
+            width: 70px;
+            height: 70px;
+            border: 2px solid #eee;
+            border-radius: 10px;
+            overflow: hidden;
+            background: white;
+            cursor: pointer;
+            padding: 0;
+            transition: 0.2s;
+          }
+          .thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+          }
+          .thumb.active {
+            border-color: #d62828;
+            transform: scale(1.05);
+          }
+          .thumb:hover:not(.active) {
+            border-color: #ccc;
           }
 
           .subcat-badge {
@@ -299,6 +369,7 @@ export default function ProductoDetallePage() {
             line-height: 1.8;
             color: #555;
             font-size: 1.05rem;
+            white-space: pre-wrap;
           }
 
           .specs-grid {
@@ -430,6 +501,9 @@ export default function ProductoDetallePage() {
           @media (max-width: 950px) {
             .detalle-grid {
               grid-template-columns: 1fr;
+            }
+            .col-image {
+              position: static;
             }
             h1 {
               font-size: 2.5rem;
