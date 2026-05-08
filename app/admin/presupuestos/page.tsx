@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
@@ -8,11 +8,17 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
+const WA_NUMBER = '59897699854'
+
 type ItemPresupuesto = {
-  producto: { nombre: string; imagen_url: string }
+  id?: string
+  slug?: string
+  nombre: string
+  precio: number
+  unidad?: string
   cantidad: number
-  precioFinal: number
-  varianteElegida?: { label: string }
+  subtotal?: number
+  imagen_url?: string
 }
 
 type Presupuesto = {
@@ -24,193 +30,869 @@ type Presupuesto = {
   created_at: string
 }
 
+type Estado = 'pendiente' | 'contactado' | 'cerrado' | 'cancelado'
+const ESTADOS: { value: Estado; label: string; color: string; bg: string }[] = [
+  { value: 'pendiente',  label: 'Pendiente',  color: '#856404', bg: '#fff3cd' },
+  { value: 'contactado', label: 'Contactado', color: '#084298', bg: '#cfe2ff' },
+  { value: 'cerrado',    label: 'Cerrado',    color: '#0f5132', bg: '#d1e7dd' },
+  { value: 'cancelado',  label: 'Cancelado',  color: '#842029', bg: '#f8d7da' },
+]
+
+function fmt(n: number) {
+  return new Intl.NumberFormat('es-UY', {
+    style: 'currency',
+    currency: 'UYU',
+    maximumFractionDigits: 0,
+  }).format(n || 0)
+}
+
+function fmtFecha(s: string) {
+  const d = new Date(s)
+  return d.toLocaleDateString('es-UY', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 export default function AdminPresupuestosPage() {
   const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([])
-  const [filtroCodigo, setFiltroCodigo] = useState('')
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Filtros
+  const [busqueda, setBusqueda] = useState('')
+  const [filtroEstado, setFiltroEstado] = useState<'todos' | Estado>('todos')
+
+  // Modal
   const [seleccionado, setSeleccionado] = useState<Presupuesto | null>(null)
 
   useEffect(() => {
-    cargarPresupuestos()
+    cargar()
   }, [])
 
-  async function cargarPresupuestos() {
+  async function cargar() {
     setLoading(true)
+    setError(null)
     const { data, error } = await supabase
       .from('tienda_presupuestos')
       .select('*')
       .order('created_at', { ascending: false })
-    
-    if (data) setPresupuestos(data)
+    if (error) {
+      setError('Error al cargar: ' + error.message)
+    } else {
+      setPresupuestos(data || [])
+    }
     setLoading(false)
   }
 
-  const actualizarEstado = async (id: string, nuevoEstado: string) => {
-    await supabase.from('tienda_presupuestos').update({ estado: nuevoEstado }).eq('id', id)
-    cargarPresupuestos()
-    if (seleccionado?.id === id) setSeleccionado({ ...seleccionado, estado: nuevoEstado })
+  async function cambiarEstado(id: string, nuevo: Estado) {
+    const { error } = await supabase
+      .from('tienda_presupuestos')
+      .update({ estado: nuevo })
+      .eq('id', id)
+    if (error) {
+      alert('No se pudo actualizar: ' + error.message)
+      return
+    }
+    setPresupuestos(prev =>
+      prev.map(p => (p.id === id ? { ...p, estado: nuevo } : p))
+    )
+    if (seleccionado?.id === id) {
+      setSeleccionado(s => (s ? { ...s, estado: nuevo } : s))
+    }
   }
 
-  const presupuestosFiltrados = presupuestos.filter(p => 
-    p.codigo.toString().includes(filtroCodigo)
-  )
+  async function eliminar(p: Presupuesto) {
+    if (
+      !confirm(
+        `¿Eliminar el presupuesto #${p.codigo}? Esta acción no se puede deshacer.`
+      )
+    )
+      return
+    const { error } = await supabase
+      .from('tienda_presupuestos')
+      .delete()
+      .eq('id', p.id)
+    if (error) {
+      alert('No se pudo eliminar: ' + error.message)
+      return
+    }
+    setPresupuestos(prev => prev.filter(x => x.id !== p.id))
+    if (seleccionado?.id === p.id) setSeleccionado(null)
+  }
 
-  const fmt = (n: number) => new Intl.NumberFormat('es-UY', { style: 'currency', currency: 'UYU', maximumFractionDigits: 0 }).format(n)
+  const filtrados = useMemo(() => {
+    return presupuestos.filter(p => {
+      if (filtroEstado !== 'todos' && p.estado !== filtroEstado) return false
+      if (busqueda) {
+        const q = busqueda.replace(/^#/, '').trim().toLowerCase()
+        if (!p.codigo.toString().includes(q)) return false
+      }
+      return true
+    })
+  }, [presupuestos, busqueda, filtroEstado])
+
+  // Conteos por estado para los chips de filtro
+  const conteo = useMemo(() => {
+    const c: Record<string, number> = { todos: presupuestos.length }
+    ESTADOS.forEach(e => (c[e.value] = 0))
+    presupuestos.forEach(p => {
+      c[p.estado] = (c[p.estado] || 0) + 1
+    })
+    return c
+  }, [presupuestos])
 
   return (
-    <div className="admin-presupuestos">
-      <header className="admin-header">
+    <div className="presupuestos-page">
+      <header className="page-header">
         <div>
-          <h1>Historial de Presupuestos</h1>
-          <p>Gestiona las solicitudes que llegan desde la tienda</p>
+          <h1>Presupuestos</h1>
+          <p className="subtitle">
+            Solicitudes recibidas desde la tienda online · {presupuestos.length}{' '}
+            en total
+          </p>
         </div>
-        <div className="search-bar">
-          <input 
-            type="text" 
-            placeholder="Buscar por código (ej: 1024)..." 
-            value={filtroCodigo}
-            onChange={(e) => setFiltroCodigo(e.target.value)}
-          />
-        </div>
+        <button className="btn-refresh" onClick={cargar} title="Recargar">
+          ↻
+        </button>
       </header>
 
-      <div className="admin-content">
-        <aside className="list-aside">
-          {loading ? <p>Cargando...</p> : (
-            <div className="presupuestos-list">
-              {presupuestosFiltrados.map(p => (
-                <div 
-                  key={p.id} 
-                  className={`presupuesto-card ${seleccionado?.id === p.id ? 'active' : ''}`}
-                  onClick={() => setSeleccionado(p)}
+      {/* Filtros */}
+      <div className="toolbar">
+        <div className="search-wrap">
+          <input
+            type="search"
+            placeholder="Buscar por #REF (ej: 1024)..."
+            value={busqueda}
+            onChange={e => setBusqueda(e.target.value)}
+          />
+        </div>
+
+        <div className="estado-filter">
+          <button
+            className={`chip ${filtroEstado === 'todos' ? 'on' : ''}`}
+            onClick={() => setFiltroEstado('todos')}
+          >
+            Todos
+            <span className="badge">{conteo.todos || 0}</span>
+          </button>
+          {ESTADOS.map(e => (
+            <button
+              key={e.value}
+              className={`chip ${filtroEstado === e.value ? 'on' : ''}`}
+              onClick={() => setFiltroEstado(e.value)}
+              style={
+                filtroEstado === e.value
+                  ? { background: e.bg, color: e.color, borderColor: e.bg }
+                  : undefined
+              }
+            >
+              {e.label}
+              <span className="badge">{conteo[e.value] || 0}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tabla */}
+      {loading ? (
+        <div className="empty">Cargando presupuestos...</div>
+      ) : error ? (
+        <div className="empty error">{error}</div>
+      ) : filtrados.length === 0 ? (
+        <div className="empty">
+          {presupuestos.length === 0
+            ? 'Todavía no hay presupuestos. Cuando alguien envíe un pedido desde la tienda, aparecerá acá.'
+            : 'Ningún presupuesto coincide con el filtro.'}
+        </div>
+      ) : (
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#REF</th>
+                <th>Fecha</th>
+                <th>Items</th>
+                <th>Total</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtrados.map(p => (
+                <tr key={p.id} onClick={() => setSeleccionado(p)} className="row">
+                  <td className="ref">#{p.codigo}</td>
+                  <td>{fmtFecha(p.created_at)}</td>
+                  <td className="items-cell">
+                    <span className="items-count">
+                      {Array.isArray(p.items) ? p.items.length : 0} producto
+                      {(p.items?.length || 0) !== 1 ? 's' : ''}
+                    </span>
+                    <small>
+                      {Array.isArray(p.items) &&
+                        p.items
+                          .slice(0, 2)
+                          .map(i => i.nombre)
+                          .join(', ')}
+                      {p.items?.length > 2 ? '...' : ''}
+                    </small>
+                  </td>
+                  <td className="total">{fmt(p.total)}</td>
+                  <td onClick={e => e.stopPropagation()}>
+                    <select
+                      className="estado-select"
+                      value={p.estado || 'pendiente'}
+                      onChange={e =>
+                        cambiarEstado(p.id, e.target.value as Estado)
+                      }
+                      style={(() => {
+                        const e = ESTADOS.find(x => x.value === p.estado)
+                        return e ? { background: e.bg, color: e.color } : {}
+                      })()}
+                    >
+                      {ESTADOS.map(e => (
+                        <option key={e.value} value={e.value}>
+                          {e.label}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td onClick={e => e.stopPropagation()}>
+                    <div className="actions">
+                      <button
+                        className="btn-link"
+                        onClick={() => setSeleccionado(p)}
+                      >
+                        Ver
+                      </button>
+                      <button
+                        className="btn-del"
+                        onClick={() => eliminar(p)}
+                        aria-label="Eliminar"
+                      >
+                        🗑
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Modal */}
+      {seleccionado && (
+        <PresupuestoModal
+          presupuesto={seleccionado}
+          onClose={() => setSeleccionado(null)}
+          onCambiarEstado={n => cambiarEstado(seleccionado.id, n)}
+          onEliminar={() => eliminar(seleccionado)}
+        />
+      )}
+
+      <style jsx>{`
+        .presupuestos-page {
+          padding: 32px;
+          max-width: 1300px;
+          margin: 0 auto;
+          font-family: 'DM Sans', system-ui, sans-serif;
+          background: #f8f9fa;
+          min-height: 100vh;
+        }
+        .page-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 20px;
+        }
+        .page-header h1 {
+          margin: 0;
+          font-family: 'Playfair Display', serif;
+          font-size: 2rem;
+          color: #1a1a1a;
+        }
+        .subtitle {
+          margin: 4px 0 0;
+          color: #888;
+          font-size: 0.9rem;
+        }
+        .btn-refresh {
+          background: white;
+          border: 1px solid #ddd;
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
+          cursor: pointer;
+          font-size: 1.1rem;
+          color: #666;
+          transition: 0.2s;
+        }
+        .btn-refresh:hover {
+          background: #fafafa;
+          color: #d62828;
+          transform: rotate(90deg);
+        }
+
+        .toolbar {
+          display: flex;
+          gap: 16px;
+          align-items: center;
+          margin-bottom: 24px;
+          flex-wrap: wrap;
+        }
+        .search-wrap {
+          flex: 1;
+          min-width: 240px;
+        }
+        .search-wrap input {
+          width: 100%;
+          padding: 12px 18px;
+          border: 1px solid #ddd;
+          border-radius: 50px;
+          background: white;
+          font-size: 0.92rem;
+          font-family: inherit;
+          outline: none;
+        }
+        .search-wrap input:focus {
+          border-color: #d62828;
+        }
+
+        .estado-filter {
+          display: flex;
+          gap: 6px;
+          flex-wrap: wrap;
+        }
+        .chip {
+          padding: 8px 14px;
+          border: 1px solid #ddd;
+          background: white;
+          border-radius: 50px;
+          cursor: pointer;
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: #444;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          transition: 0.15s;
+          font-family: inherit;
+        }
+        .chip:hover {
+          border-color: #aaa;
+        }
+        .chip.on {
+          background: #111;
+          color: white;
+          border-color: #111;
+        }
+        .chip .badge {
+          background: rgba(255, 255, 255, 0.25);
+          color: inherit;
+          padding: 2px 8px;
+          border-radius: 50px;
+          font-size: 0.72rem;
+          font-weight: 700;
+        }
+        .chip:not(.on) .badge {
+          background: #f0f0f0;
+          color: #666;
+        }
+
+        .empty {
+          padding: 80px 40px;
+          text-align: center;
+          color: #888;
+          background: white;
+          border-radius: 16px;
+          font-size: 0.95rem;
+        }
+        .empty.error {
+          color: #b91c1c;
+          background: #fef2f2;
+        }
+
+        .table-wrap {
+          background: white;
+          border-radius: 16px;
+          overflow: hidden;
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+        }
+        th {
+          background: #fafafa;
+          text-align: left;
+          padding: 14px 16px;
+          font-size: 0.75rem;
+          letter-spacing: 1.5px;
+          text-transform: uppercase;
+          color: #666;
+          border-bottom: 1px solid #eee;
+        }
+        td {
+          padding: 14px 16px;
+          border-bottom: 1px solid #f5f5f5;
+          font-size: 0.9rem;
+          vertical-align: middle;
+        }
+        tr.row {
+          cursor: pointer;
+          transition: 0.15s;
+        }
+        tr.row:hover {
+          background: #fafafa;
+        }
+        .ref {
+          font-weight: 800;
+          color: #d62828;
+          font-size: 1rem;
+        }
+        .items-cell {
+          max-width: 280px;
+        }
+        .items-count {
+          display: block;
+          font-weight: 600;
+          color: #333;
+        }
+        .items-cell small {
+          color: #999;
+          font-size: 0.78rem;
+          display: block;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 280px;
+        }
+        .total {
+          font-weight: 800;
+          color: #1a1a1a;
+          white-space: nowrap;
+        }
+
+        .estado-select {
+          padding: 6px 10px;
+          border-radius: 50px;
+          border: none;
+          font-weight: 700;
+          font-size: 0.78rem;
+          cursor: pointer;
+          font-family: inherit;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          outline: none;
+        }
+
+        .actions {
+          display: flex;
+          gap: 6px;
+          align-items: center;
+        }
+        .btn-link {
+          background: #111;
+          color: white;
+          border: none;
+          padding: 7px 14px;
+          border-radius: 6px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          cursor: pointer;
+        }
+        .btn-link:hover {
+          background: #d62828;
+        }
+        .btn-del {
+          background: white;
+          border: 1px solid #ddd;
+          padding: 6px 10px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 0.95rem;
+        }
+        .btn-del:hover {
+          background: #fef2f2;
+          border-color: #fca5a5;
+        }
+      `}</style>
+    </div>
+  )
+}
+
+// ====================================================================
+// MODAL DE DETALLE
+// ====================================================================
+
+function PresupuestoModal({
+  presupuesto,
+  onClose,
+  onCambiarEstado,
+  onEliminar,
+}: {
+  presupuesto: Presupuesto
+  onClose: () => void
+  onCambiarEstado: (estado: Estado) => void
+  onEliminar: () => void
+}) {
+  const items = Array.isArray(presupuesto.items) ? presupuesto.items : []
+  const estado = ESTADOS.find(e => e.value === presupuesto.estado)
+
+  // Reconstruir mensaje de WhatsApp para reenvío
+  const mensajeWA = useMemo(() => {
+    const lineas = items.map(
+      i => `• ${i.nombre} x${i.cantidad} — ${fmt(i.precio * i.cantidad)}`
+    )
+    return [
+      `*Presupuesto #${presupuesto.codigo}*`,
+      ``,
+      ...lineas,
+      ``,
+      `*Total: ${fmt(presupuesto.total)}*`,
+    ].join('\n')
+  }, [items, presupuesto.codigo, presupuesto.total])
+
+  const linkWA = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(mensajeWA)}`
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={e => e.stopPropagation()}>
+        <header className="modal-header">
+          <div>
+            <span className="modal-ref">#{presupuesto.codigo}</span>
+            <h2>Detalle del presupuesto</h2>
+            <small>{fmtFecha(presupuesto.created_at)}</small>
+          </div>
+          <button className="close" onClick={onClose} aria-label="Cerrar">
+            ×
+          </button>
+        </header>
+
+        <div className="modal-body">
+          <div className="estado-row">
+            <label>Estado actual</label>
+            <div className="estado-buttons">
+              {ESTADOS.map(e => (
+                <button
+                  key={e.value}
+                  className={`estado-btn ${
+                    presupuesto.estado === e.value ? 'on' : ''
+                  }`}
+                  onClick={() => onCambiarEstado(e.value)}
+                  style={
+                    presupuesto.estado === e.value
+                      ? { background: e.bg, color: e.color, borderColor: e.bg }
+                      : undefined
+                  }
                 >
-                  <div className="card-info">
-                    <span className="p-code">#{p.codigo}</span>
-                    <span className="p-date">{new Date(p.created_at).toLocaleDateString()}</span>
+                  {e.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="items-section">
+            <h3>Productos solicitados</h3>
+            <div className="items-list">
+              {items.map((item, i) => (
+                <div key={i} className="item-row">
+                  <div className="item-img">
+                    {item.imagen_url ? (
+                      <img src={item.imagen_url} alt={item.nombre} />
+                    ) : (
+                      <div className="no-img">📦</div>
+                    )}
                   </div>
-                  <div className="card-total">
-                    <strong>{fmt(p.total)}</strong>
-                    <span className={`status-badge ${p.estado}`}>{p.estado}</span>
+                  <div className="item-info">
+                    <strong>{item.nombre}</strong>
+                    <small>
+                      {fmt(item.precio)} {item.unidad ? `/ ${item.unidad}` : ''}
+                    </small>
+                  </div>
+                  <div className="item-qty">×{item.cantidad}</div>
+                  <div className="item-subtotal">
+                    {fmt(item.precio * item.cantidad)}
                   </div>
                 </div>
               ))}
             </div>
-          )}
-        </aside>
+          </div>
 
-        <main className="detail-main">
-          {seleccionado ? (
-            <div className="detail-view animate-in">
-              <div className="detail-header">
-                <h2>Presupuesto #{seleccionado.codigo}</h2>
-                <div className="actions">
-                  <select 
-                    value={seleccionado.estado} 
-                    onChange={(e) => actualizarEstado(seleccionado.id, e.target.value)}
-                  >
-                    <option value="pendiente">Pendiente</option>
-                    <option value="contactado">Contactado</option>
-                    <option value="vendido">Vendido</option>
-                    <option value="cancelado">Cancelado</option>
-                  </select>
-                </div>
-              </div>
+          <div className="total-row">
+            <span>TOTAL</span>
+            <strong>{fmt(presupuesto.total)}</strong>
+          </div>
+        </div>
 
-              <div className="items-table">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Producto</th>
-                      <th>Cantidad</th>
-                      <th>Precio Unit.</th>
-                      <th>Subtotal</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {seleccionado.items.map((item, i) => (
-                      <tr key={i}>
-                        <td>
-                          <div className="prod-cell">
-                            <img src={item.producto.imagen_url} alt="" />
-                            <div>
-                              <strong>{item.producto.nombre}</strong>
-                              {item.varianteElegida && <small>{item.varianteElegida.label}</small>}
-                            </div>
-                          </div>
-                        </td>
-                        <td>{item.cantidad}</td>
-                        <td>{fmt(item.precioFinal)}</td>
-                        <td>{fmt(item.precioFinal * item.cantidad)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="detail-footer">
-                <div className="total-box">
-                  <span>TOTAL ESTIMADO</span>
-                  <strong>{fmt(seleccionado.total)}</strong>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="empty-state">
-              <p>Selecciona un presupuesto para ver el detalle</p>
-            </div>
-          )}
-        </main>
+        <footer className="modal-footer">
+          <button className="btn-del-big" onClick={onEliminar}>
+            🗑 Eliminar
+          </button>
+          <a
+            className="btn-wa"
+            href={linkWA}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Reenviar por WhatsApp
+          </a>
+        </footer>
       </div>
 
       <style jsx>{`
-        .admin-presupuestos { padding: 2rem; max-width: 1400px; margin: 0 auto; font-family: sans-serif; background: #f8f9fa; min-height: 100vh; }
-        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
-        .admin-header h1 { font-size: 1.8rem; color: #1a1a1a; margin: 0; }
-        .admin-header p { color: #666; margin: 5px 0 0; }
-        
-        .search-bar input { padding: 0.8rem 1.5rem; border: 1px solid #ddd; border-radius: 50px; width: 300px; outline: none; }
-        .search-bar input:focus { border-color: #D62828; }
+        .modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.6);
+          z-index: 1000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+          animation: fadeIn 0.2s;
+        }
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
 
-        .admin-content { display: grid; grid-template-columns: 350px 1fr; gap: 2rem; }
-        
-        /* Lista Izquierda */
-        .presupuestos-list { display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; max-height: 80vh; }
-        .presupuesto-card { background: white; padding: 1.2rem; border-radius: 16px; cursor: pointer; border: 2px solid transparent; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
-        .presupuesto-card:hover { border-color: #eee; transform: translateY(-2px); }
-        .presupuesto-card.active { border-color: #D62828; background: #fff5f5; }
-        
-        .card-info { display: flex; justify-content: space-between; margin-bottom: 0.5rem; }
-        .p-code { font-weight: 800; color: #D62828; font-size: 1.1rem; }
-        .p-date { font-size: 0.8rem; color: #999; }
-        
-        .card-total { display: flex; justify-content: space-between; align-items: center; }
-        .status-badge { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; padding: 4px 8px; border-radius: 6px; }
-        .status-badge.pendiente { background: #fff3cd; color: #856404; }
-        .status-badge.contactado { background: #cfe2ff; color: #084298; }
-        .status-badge.vendido { background: #d1e7dd; color: #0f5132; }
+        .modal-content {
+          background: white;
+          border-radius: 20px;
+          width: 100%;
+          max-width: 720px;
+          max-height: 90vh;
+          display: flex;
+          flex-direction: column;
+          box-shadow: 0 30px 80px rgba(0, 0, 0, 0.3);
+          font-family: 'DM Sans', system-ui, sans-serif;
+        }
 
-        /* Detalle Derecha */
-        .detail-main { background: white; border-radius: 24px; padding: 3rem; box-shadow: 0 10px 30px rgba(0,0,0,0.05); min-height: 60vh; }
-        .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid #eee; }
-        .detail-header select { padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #ddd; font-weight: 600; }
+        .modal-header {
+          padding: 24px 28px;
+          border-bottom: 1px solid #f0f0f0;
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+        }
+        .modal-ref {
+          display: inline-block;
+          background: #fee2e2;
+          color: #d62828;
+          padding: 4px 12px;
+          border-radius: 50px;
+          font-size: 0.85rem;
+          font-weight: 800;
+          margin-bottom: 8px;
+        }
+        .modal-header h2 {
+          margin: 0;
+          font-family: 'Playfair Display', serif;
+          font-size: 1.6rem;
+          color: #1a1a1a;
+        }
+        .modal-header small {
+          color: #999;
+          font-size: 0.85rem;
+        }
+        .close {
+          background: none;
+          border: none;
+          font-size: 2rem;
+          cursor: pointer;
+          color: #888;
+          width: 36px;
+          height: 36px;
+          padding: 0;
+          line-height: 1;
+          border-radius: 50%;
+        }
+        .close:hover {
+          background: #f5f5f5;
+          color: #d62828;
+        }
 
-        .items-table { width: 100%; margin-bottom: 2rem; }
-        .items-table table { width: 100%; border-collapse: collapse; }
-        .items-table th { text-align: left; padding: 12px; color: #999; font-size: 0.8rem; text-transform: uppercase; border-bottom: 2px solid #f8f9fa; }
-        .items-table td { padding: 15px 12px; border-bottom: 1px solid #f8f9fa; }
-        
-        .prod-cell { display: flex; gap: 15px; align-items: center; }
-        .prod-cell img { width: 50px; height: 50px; object-fit: cover; border-radius: 8px; }
-        .prod-cell small { display: block; color: #D62828; font-weight: 600; }
+        .modal-body {
+          padding: 24px 28px;
+          overflow-y: auto;
+          flex: 1;
+        }
 
-        .detail-footer { display: flex; justify-content: flex-end; padding-top: 2rem; border-top: 2px solid #f8f9fa; }
-        .total-box { text-align: right; }
-        .total-box span { display: block; font-size: 0.8rem; color: #999; font-weight: 800; }
-        .total-box strong { font-size: 2.5rem; color: #D62828; }
+        .estado-row {
+          margin-bottom: 28px;
+        }
+        .estado-row label {
+          display: block;
+          font-size: 0.78rem;
+          font-weight: 700;
+          color: #888;
+          text-transform: uppercase;
+          letter-spacing: 1.5px;
+          margin-bottom: 10px;
+        }
+        .estado-buttons {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .estado-btn {
+          padding: 10px 16px;
+          border: 1px solid #ddd;
+          background: white;
+          border-radius: 50px;
+          cursor: pointer;
+          font-weight: 700;
+          font-size: 0.85rem;
+          transition: 0.2s;
+          font-family: inherit;
+        }
+        .estado-btn:hover {
+          border-color: #aaa;
+        }
+        .estado-btn.on {
+          font-weight: 800;
+        }
 
-        .empty-state { display: flex; align-items: center; justify-content: center; height: 100%; color: #999; }
-        .animate-in { animation: fadeIn 0.3s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .items-section h3 {
+          font-size: 0.9rem;
+          color: #333;
+          letter-spacing: 1px;
+          text-transform: uppercase;
+          border-bottom: 1px solid #f0f0f0;
+          padding-bottom: 8px;
+          margin: 0 0 16px;
+        }
+        .items-list {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          margin-bottom: 24px;
+        }
+        .item-row {
+          display: grid;
+          grid-template-columns: 60px 1fr auto auto;
+          gap: 14px;
+          align-items: center;
+          padding: 12px;
+          background: #fafafa;
+          border-radius: 12px;
+        }
+        .item-img {
+          width: 60px;
+          height: 60px;
+          border-radius: 10px;
+          overflow: hidden;
+          background: white;
+          padding: 4px;
+        }
+        .item-img img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          border-radius: 6px;
+        }
+        .no-img {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.5rem;
+          opacity: 0.4;
+        }
+        .item-info strong {
+          display: block;
+          font-size: 0.95rem;
+          color: #111;
+          margin-bottom: 2px;
+        }
+        .item-info small {
+          color: #888;
+          font-size: 0.8rem;
+        }
+        .item-qty {
+          font-weight: 700;
+          color: #555;
+          font-size: 0.95rem;
+        }
+        .item-subtotal {
+          font-weight: 800;
+          color: #d62828;
+          white-space: nowrap;
+        }
+
+        .total-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 16px 0 0;
+          border-top: 2px solid #1a1a1a;
+        }
+        .total-row span {
+          font-size: 0.85rem;
+          font-weight: 800;
+          color: #888;
+          letter-spacing: 1.5px;
+        }
+        .total-row strong {
+          font-size: 2rem;
+          color: #d62828;
+          font-weight: 900;
+        }
+
+        .modal-footer {
+          padding: 18px 28px;
+          border-top: 1px solid #f0f0f0;
+          display: flex;
+          gap: 10px;
+          justify-content: space-between;
+        }
+        .btn-del-big {
+          background: white;
+          color: #b91c1c;
+          border: 1px solid #fecaca;
+          padding: 12px 18px;
+          border-radius: 50px;
+          cursor: pointer;
+          font-weight: 700;
+          font-size: 0.85rem;
+          font-family: inherit;
+        }
+        .btn-del-big:hover {
+          background: #fef2f2;
+        }
+        .btn-wa {
+          background: #25d366;
+          color: white;
+          padding: 12px 28px;
+          border-radius: 50px;
+          text-decoration: none;
+          font-weight: 800;
+          font-size: 0.9rem;
+          box-shadow: 0 6px 20px rgba(37, 211, 102, 0.3);
+        }
+        .btn-wa:hover {
+          background: #1fb955;
+        }
+
+        @media (max-width: 600px) {
+          .item-row {
+            grid-template-columns: 50px 1fr auto;
+          }
+          .item-subtotal {
+            grid-column: 1 / -1;
+            text-align: right;
+          }
+        }
       `}</style>
     </div>
   )

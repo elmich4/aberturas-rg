@@ -1,25 +1,18 @@
 'use client'
 import { useAuth } from '@/lib/auth'
 import { useRouter, usePathname } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import Link from 'next/link'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 const MENU_BASE = [
-  { href: '/admin',              icon: '📊', label: 'Dashboard'    },
-  { href: '/admin/landing',      icon: '🏠', label: 'Landing'      },
-  { href: '/admin/blog',         icon: '📝', label: 'Blog'         },
-  { href: '/admin/trabajos',     icon: '🖼️', label: 'Trabajos'     },
-  { href: '/admin/slides',       icon: '🎞️', label: 'Hero Slider'  },
-  { href: '/admin/precios',      icon: '💰', label: 'Precios'      },
-  { href: '/admin/tienda',       icon: '🛍️', label: 'Tienda'       },
-  { href: '/admin/presupuestos', icon: '📋', label: 'Presupuestos', badgeKey: 'presupuestosPendientes' },
-  { href: '/admin/categorias',   icon: '🗂️', label: 'Categorías'   },
+  { href: '/admin',          icon: '📊', label: 'Dashboard'  },
+  { href: '/admin/landing',  icon: '🏠', label: 'Landing'    },
+  { href: '/admin/blog',     icon: '📝', label: 'Blog'       },
+  { href: '/admin/trabajos', icon: '🖼️', label: 'Trabajos'   },
+  { href: '/admin/slides',    icon: '🎞️', label: 'Hero Slider' },
+  { href: '/admin/precios',  icon: '💰', label: 'Precios'    },
+  { href: '/admin/tienda',      icon: '🛍️', label: 'Tienda'      },
+  { href: '/admin/categorias',  icon: '🗂️', label: 'Categorías'  },
 ]
 const MENU_ADMIN = [
   { href: '/admin/usuarios',  icon: '👥', label: 'Usuarios'  },
@@ -30,31 +23,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { vendedor, loading, logout, isAdmin } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
-  const [presupuestosPendientes, setPresupuestosPendientes] = useState<number>(0)
 
   useEffect(() => {
     if (!loading && !vendedor) router.push('/login')
   }, [loading, vendedor])
-
-  // Contador de presupuestos pendientes para el badge del menú
-  useEffect(() => {
-    if (!vendedor) return
-    let cancelled = false
-    async function cargarConteo() {
-      const { count } = await supabase
-        .from('tienda_presupuestos')
-        .select('*', { count: 'exact', head: true })
-        .eq('estado', 'pendiente')
-      if (!cancelled) setPresupuestosPendientes(count || 0)
-    }
-    cargarConteo()
-    // Refrescar cada vez que cambie de página por si actualizó algo
-    const interval = setInterval(cargarConteo, 30000)
-    return () => {
-      cancelled = true
-      clearInterval(interval)
-    }
-  }, [vendedor, pathname])
 
   if (loading || !vendedor) {
     return (
@@ -64,9 +36,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     )
   }
 
-  const badges: Record<string, number> = {
-    presupuestosPendientes,
-  }
+  const MENU = [...MENU_BASE, ...(isAdmin ? MENU_ADMIN : [])]
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', background: '#0f0f0f', fontFamily: "'DM Sans', sans-serif" }}>
@@ -88,25 +58,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <nav style={{ flex: 1, padding: '12px 8px', display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto' }}>
           {MENU_BASE.map(item => {
             const active = pathname === item.href
-            const badgeCount = item.badgeKey ? badges[item.badgeKey] : 0
             return (
               <Link key={item.href} href={item.href} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, textDecoration: 'none', background: active ? 'rgba(214,40,40,0.15)' : 'transparent', color: active ? '#fff' : '#888', borderLeft: active ? '3px solid #D62828' : '3px solid transparent', fontSize: 14, fontWeight: active ? 600 : 400, transition: 'all .15s' }}>
                 <span style={{ fontSize: 16 }}>{item.icon}</span>
-                <span style={{ flex: 1 }}>{item.label}</span>
-                {badgeCount > 0 && (
-                  <span style={{
-                    background: '#D62828',
-                    color: '#fff',
-                    fontSize: 10,
-                    fontWeight: 800,
-                    padding: '2px 7px',
-                    borderRadius: 50,
-                    minWidth: 18,
-                    textAlign: 'center',
-                  }}>
-                    {badgeCount}
-                  </span>
-                )}
+                {item.label}
               </Link>
             )
           })}
