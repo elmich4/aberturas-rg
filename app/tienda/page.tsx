@@ -232,20 +232,26 @@ export default function TiendaPage() {
             gap: 25px;
           }
 
-          /* === FIX: links neutralizados (sin azul/violeta) === */
+          /* === FIX FUERTE: matar TODO subrayado y color de link === */
           .product-card,
+          .product-card *,
           .product-card:link,
           .product-card:visited,
           .product-card:hover,
           .product-card:active,
-          .product-card:focus {
-            color: inherit;
-            text-decoration: none;
+          .product-card:focus,
+          .product-card:link *,
+          .product-card:visited *,
+          .product-card:hover *,
+          .product-card:active *,
+          .product-card:focus * {
+            text-decoration: none !important;
+            text-decoration-line: none !important;
+            text-decoration-color: transparent !important;
+            text-underline-offset: 0 !important;
           }
-          .product-card h3,
-          .product-card p,
-          .product-card span {
-            color: inherit;
+          .product-card {
+            color: inherit !important;
           }
 
           .product-card {
@@ -287,7 +293,7 @@ export default function TiendaPage() {
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #1a1a1a;
+            color: #1a1a1a !important;
           }
           .price {
             color: #d62828 !important;
@@ -314,7 +320,7 @@ export default function TiendaPage() {
             border-radius: 50px;
             font-size: 0.8rem;
             font-weight: 700;
-            color: #333;
+            color: #333 !important;
             transition: 0.3s;
           }
           .product-card:hover .btn-ver {
