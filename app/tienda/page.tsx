@@ -232,28 +232,6 @@ export default function TiendaPage() {
             gap: 25px;
           }
 
-          /* === FIX FUERTE: matar TODO subrayado y color de link === */
-          .product-card,
-          .product-card *,
-          .product-card:link,
-          .product-card:visited,
-          .product-card:hover,
-          .product-card:active,
-          .product-card:focus,
-          .product-card:link *,
-          .product-card:visited *,
-          .product-card:hover *,
-          .product-card:active *,
-          .product-card:focus * {
-            text-decoration: none !important;
-            text-decoration-line: none !important;
-            text-decoration-color: transparent !important;
-            text-underline-offset: 0 !important;
-          }
-          .product-card {
-            color: inherit !important;
-          }
-
           .product-card {
             background: white;
             border-radius: 20px;
@@ -263,6 +241,7 @@ export default function TiendaPage() {
             display: flex;
             flex-direction: column;
             cursor: pointer;
+            color: #1a1a1a;
           }
           .product-card:hover {
             transform: translateY(-5px);
@@ -293,16 +272,16 @@ export default function TiendaPage() {
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #1a1a1a !important;
+            color: #1a1a1a;
           }
           .price {
-            color: #d62828 !important;
+            color: #d62828;
             font-size: 1.3rem;
             font-weight: 800;
             margin: 10px 0;
           }
           .price small {
-            color: #999 !important;
+            color: #999;
             font-weight: 500;
           }
           .actions {
@@ -320,17 +299,17 @@ export default function TiendaPage() {
             border-radius: 50px;
             font-size: 0.8rem;
             font-weight: 700;
-            color: #333 !important;
+            color: #333;
             transition: 0.3s;
           }
           .product-card:hover .btn-ver {
             background: #111;
-            color: white !important;
+            color: white;
             border-color: #111;
           }
           .btn-add {
             background: #d62828;
-            color: white !important;
+            color: white;
             border: none;
             border-radius: 50px;
             padding: 10px 12px;
