@@ -54,7 +54,7 @@ export default function TiendaPage() {
   }, [productos, catActiva])
 
   const handleAdd = (e: React.MouseEvent, p: any) => {
-    e.preventDefault() // que no navegue al detalle
+    e.preventDefault()
     e.stopPropagation()
     addItem({
       id: p.id,
@@ -231,16 +231,32 @@ export default function TiendaPage() {
             grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
             gap: 25px;
           }
+
+          /* === FIX: links neutralizados (sin azul/violeta) === */
+          .product-card,
+          .product-card:link,
+          .product-card:visited,
+          .product-card:hover,
+          .product-card:active,
+          .product-card:focus {
+            color: inherit;
+            text-decoration: none;
+          }
+          .product-card h3,
+          .product-card p,
+          .product-card span {
+            color: inherit;
+          }
+
           .product-card {
             background: white;
             border-radius: 20px;
             overflow: hidden;
-            text-decoration: none;
-            color: inherit;
             transition: 0.3s;
             border: 1px solid #eee;
             display: flex;
             flex-direction: column;
+            cursor: pointer;
           }
           .product-card:hover {
             transform: translateY(-5px);
@@ -271,12 +287,17 @@ export default function TiendaPage() {
             display: flex;
             align-items: center;
             justify-content: center;
+            color: #1a1a1a;
           }
           .price {
-            color: #d62828;
+            color: #d62828 !important;
             font-size: 1.3rem;
             font-weight: 800;
             margin: 10px 0;
+          }
+          .price small {
+            color: #999 !important;
+            font-weight: 500;
           }
           .actions {
             display: grid;
@@ -293,16 +314,17 @@ export default function TiendaPage() {
             border-radius: 50px;
             font-size: 0.8rem;
             font-weight: 700;
+            color: #333;
             transition: 0.3s;
           }
           .product-card:hover .btn-ver {
             background: #111;
-            color: white;
+            color: white !important;
             border-color: #111;
           }
           .btn-add {
             background: #d62828;
-            color: white;
+            color: white !important;
             border: none;
             border-radius: 50px;
             padding: 10px 12px;
