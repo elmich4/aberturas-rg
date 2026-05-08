@@ -273,7 +273,7 @@ export default function ProductoDetallePage() {
           .main-img-card {
             background: white;
             border-radius: 30px;
-            overflow: hidden;
+            padding: 16px;
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.05);
           }
           .main-img-card img {
@@ -281,25 +281,26 @@ export default function ProductoDetallePage() {
             display: block;
             object-fit: cover;
             aspect-ratio: 4 / 3;
+            border-radius: 20px;
           }
 
           .thumbs {
             display: flex;
-            gap: 8px;
-            margin-top: 12px;
+            gap: 10px;
+            margin-top: 14px;
             overflow-x: auto;
             padding: 4px 2px;
           }
           .thumb {
             flex: 0 0 auto;
-            width: 70px;
-            height: 70px;
+            width: 76px;
+            height: 76px;
             border: 2px solid #eee;
-            border-radius: 10px;
+            border-radius: 14px;
             overflow: hidden;
             background: white;
             cursor: pointer;
-            padding: 0;
+            padding: 4px;
             transition: 0.2s;
           }
           .thumb img {
@@ -307,6 +308,7 @@ export default function ProductoDetallePage() {
             height: 100%;
             object-fit: cover;
             display: block;
+            border-radius: 8px;
           }
           .thumb.active {
             border-color: #d62828;
@@ -382,7 +384,7 @@ export default function ProductoDetallePage() {
             color: #666;
             padding: 10px;
             background: #fff;
-            border-radius: 8px;
+            border-radius: 10px;
             border: 1px solid #f0f0f0;
           }
 

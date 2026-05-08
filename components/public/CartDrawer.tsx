@@ -40,7 +40,6 @@ export default function CartDrawer() {
     setError(null)
 
     try {
-      // Guardar en Supabase y obtener el código generado por la DB
       const itemsParaGuardar = items.map(i => ({
         id: i.id,
         slug: i.slug,
@@ -56,8 +55,6 @@ export default function CartDrawer() {
         .insert({
           items: itemsParaGuardar,
           total: totalPrecio,
-          // estado se setea solo en 'pendiente' por default
-          // codigo se autogenera por la secuencia
         })
         .select('codigo')
         .single()
@@ -66,7 +63,6 @@ export default function CartDrawer() {
 
       const codigo = data?.codigo ?? null
 
-      // Construir mensaje de WhatsApp
       const lineas = items.map(
         i => `• ${i.nombre} x${i.cantidad} — ${fmt(i.precio * i.cantidad)}`
       )
@@ -85,7 +81,6 @@ export default function CartDrawer() {
 
       const url = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(mensaje)}`
 
-      // Limpiar carrito y abrir WhatsApp
       clearCart()
       closeCart()
       window.open(url, '_blank')
@@ -94,7 +89,6 @@ export default function CartDrawer() {
       setError(
         'No se pudo guardar el presupuesto, pero podés enviarlo igual por WhatsApp.'
       )
-      // Fallback: enviar por WA aunque falle el guardado en DB
       const lineas = items.map(
         i => `• ${i.nombre} x${i.cantidad} — ${fmt(i.precio * i.cantidad)}`
       )
@@ -116,14 +110,12 @@ export default function CartDrawer() {
 
   return (
     <>
-      {/* Overlay */}
       <div
         className={`overlay ${isOpen ? 'visible' : ''}`}
         onClick={closeCart}
         aria-hidden="true"
       />
 
-      {/* Drawer */}
       <aside className={`drawer ${isOpen ? 'open' : ''}`} aria-hidden={!isOpen}>
         <header className="drawer-header">
           <h2>Mi presupuesto</h2>
@@ -379,7 +371,9 @@ function CartLine({
 }) {
   return (
     <li className="line">
-      <img src={item.imagen_url || '/placeholder.png'} alt={item.nombre} />
+      <div className="thumb-wrap">
+        <img src={item.imagen_url || '/placeholder.png'} alt={item.nombre} />
+      </div>
       <div className="info">
         <h4>{item.nombre}</h4>
         <p className="precio-unit">
@@ -407,15 +401,23 @@ function CartLine({
           gap: 12px;
           padding: 12px;
           background: white;
-          border-radius: 12px;
+          border-radius: 14px;
           border: 1px solid #f0f0f0;
         }
-        img {
+        .thumb-wrap {
           width: 70px;
           height: 70px;
+          background: #f5f5f5;
+          border-radius: 12px;
+          overflow: hidden;
+          padding: 4px;
+        }
+        .thumb-wrap img {
+          width: 100%;
+          height: 100%;
           object-fit: cover;
           border-radius: 8px;
-          background: #f5f5f5;
+          display: block;
         }
         .info h4 {
           margin: 0 0 4px;

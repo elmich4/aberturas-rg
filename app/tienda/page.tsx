@@ -242,6 +242,7 @@ export default function TiendaPage() {
             flex-direction: column;
             cursor: pointer;
             color: #1a1a1a;
+            padding: 12px;
           }
           .product-card:hover {
             transform: translateY(-5px);
@@ -250,16 +251,18 @@ export default function TiendaPage() {
           }
           .img-holder {
             height: 220px;
-            background: #fff;
+            background: #f5f5f5;
             overflow: hidden;
+            border-radius: 14px;
           }
           .img-holder img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            display: block;
           }
           .info {
-            padding: 20px;
+            padding: 16px 8px 8px;
             text-align: center;
             display: flex;
             flex-direction: column;
