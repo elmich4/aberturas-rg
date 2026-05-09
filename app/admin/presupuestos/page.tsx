@@ -12,6 +12,9 @@ const WA_NUMBER = '59897699854'
 
 type ItemPresupuesto = {
   id?: string
+  productoId?: string
+  varianteId?: string | null
+  varianteNombre?: string | null
   slug?: string
   nombre: string
   precio: number
@@ -546,7 +549,10 @@ function PresupuestoModal({
   // Reconstruir mensaje de WhatsApp para reenvío
   const mensajeWA = useMemo(() => {
     const lineas = items.map(
-      i => `• ${i.nombre} x${i.cantidad} — ${fmt(i.precio * i.cantidad)}`
+      i => {
+        const sufijo = i.varianteNombre ? ` (${i.varianteNombre})` : ''
+        return `• ${i.nombre}${sufijo} x${i.cantidad} — ${fmt(i.precio * i.cantidad)}`
+      }
     )
     return [
       `*Presupuesto #${presupuesto.codigo}*`,
@@ -610,6 +616,9 @@ function PresupuestoModal({
                   </div>
                   <div className="item-info">
                     <strong>{item.nombre}</strong>
+                    {item.varianteNombre && (
+                      <span className="item-variante">{item.varianteNombre}</span>
+                    )}
                     <small>
                       {fmt(item.precio)} {item.unidad ? `/ ${item.unidad}` : ''}
                     </small>
@@ -814,6 +823,16 @@ function PresupuestoModal({
           font-size: 0.95rem;
           color: #111;
           margin-bottom: 2px;
+        }
+        .item-variante {
+          display: inline-block;
+          background: #fef2f2;
+          color: #d62828;
+          padding: 2px 8px;
+          border-radius: 50px;
+          font-size: 0.68rem;
+          font-weight: 700;
+          margin-bottom: 4px;
         }
         .item-info small {
           color: #888;
