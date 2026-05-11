@@ -11,7 +11,7 @@ const PORQUES = [
   { title: 'Precio justo',       desc: 'Sin intermediarios. Fabricamos y colocamos nosotros mismos.' },
   { title: 'Garantía escrita',   desc: 'Si algo falla, volvemos sin costo adicional.' },
   { title: 'Presupuesto online', desc: 'Consultá el costo por WhatsApp, sin esperar una visita.' },
-  { title: 'Cobertura total',    desc: 'Instalamos en todo Uruguay. Coordinamos la logística.' },
+  { title: 'Envios a TODO EL PAIS',    desc: 'Enviamos a todo el país, o para retirar en nuestro local.' },
 ]
 
 const CATEGORIAS = [
@@ -261,7 +261,7 @@ export default function HomePage() {
               { num: '01', title: 'Consultás', desc: 'Mandanos un mensaje por WhatsApp' },
               { num: '02', title: 'Cotizamos', desc: 'Te respondemos con precios al instante' },
               { num: '03', title: 'Fabricamos', desc: 'A medida exacta en nuestro taller' },
-              { num: '04', title: 'Instalamos', desc: 'Coordinamos día y horario' },
+              { num: '04', title: 'Enviamos a TODO EL PAIS', desc: 'Enviamos a todo el país, o para retirar en nuestro local.' },
             ].map(paso => (
               <div key={paso.num} style={{ textAlign: 'center', padding: '0 12px', position: 'relative', zIndex: 1 }}>
                 <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#D62828', color: '#fff', fontFamily:"'Bebas Neue',sans-serif", fontSize: 18, letterSpacing: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', boxShadow: '0 4px 14px rgba(214,40,40,.3)' }}>{paso.num}</div>

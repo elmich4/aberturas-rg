@@ -10,12 +10,11 @@ const supabase = createClient(
 )
 
 const NAV = [
-  { href: '/',         label: 'Inicio'     },
-  { href: '/nosotros', label: 'Nosotros'   },
-  { href: '/trabajos', label: 'Trabajos'   },
-  { href: '/blog',     label: 'Novedades'  },
-  { href: '/tienda',   label: '🛍️ Tienda' },
-  { href: '/contacto', label: 'Contacto'   },
+  { href: '/',         label: '🏠 Inicio'    },
+  { href: '/tienda',   label: '🛍️ Tienda'   },
+  { href: '/trabajos', label: '🔨 Trabajos'  },
+  { href: '/blog',     label: '📰 Novedades' },
+  { href: '/contacto', label: '✉️ Contacto'  },
 ]
 
 type Anuncio = {
@@ -204,7 +203,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
 
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, color: '#F7B731', marginBottom: 14 }}>Empresa</div>
-              {[['Nosotros', '/nosotros'], ['Nuestros trabajos', '/trabajos'], ['Novedades', '/blog'], ['Contacto', '/contacto']].map(([l, h]) => (
+              {[['Tienda', '/tienda'], ['Nuestros trabajos', '/trabajos'], ['Novedades', '/blog'], ['Contacto', '/contacto']].map(([l, h]) => (
                 <div key={h} style={{ marginBottom: 6 }}><Link href={h} style={{ color: '#888', textDecoration: 'none', fontSize: 13 }}>{l}</Link></div>
               ))}
             </div>
