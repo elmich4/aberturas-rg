@@ -21,25 +21,31 @@ function fmt(n: number) {
   }).format(n)
 }
 
+type Orden = 'relevancia' | 'precio_asc' | 'precio_desc'
+
 export default function TiendaPage() {
   const [categorias, setCategorias] = useState<any[]>([])
+  const [subcategorias, setSubcategorias] = useState<any[]>([])
   const [productos, setProductos] = useState<any[]>([])
-  // Map producto_id → { count, minPrecio }
   const [variantesPorProducto, setVariantesPorProducto] = useState<
     Record<string, { count: number; minPrecio: number }>
   >({})
   const [catActiva, setCatActiva] = useState('todas')
+  const [subcatActiva, setSubcatActiva] = useState('todas')
+  const [busqueda, setBusqueda] = useState('')
+  const [orden, setOrden] = useState<Orden>('relevancia')
   const [loading, setLoading] = useState(true)
   const { addItem } = useCart()
 
   useEffect(() => {
     async function cargar() {
-      const [{ data: cats }, { data: prods }, { data: varsRaw }] =
+      const [{ data: cats }, { data: subs }, { data: prods }, { data: varsRaw }] =
         await Promise.all([
           supabase.from('tienda_categorias').select('*').order('orden'),
+          supabase.from('tienda_subcategorias').select('*').order('orden'),
           supabase
             .from('tienda_productos')
-            .select('*, tienda_subcategorias(categoria_id)')
+            .select('*, tienda_subcategorias(categoria_id, nombre)')
             .eq('activo', true)
             .order('orden'),
           supabase
@@ -48,7 +54,6 @@ export default function TiendaPage() {
             .eq('activo', true),
         ])
 
-      // Agrupar variantes por producto_id
       const mapa: Record<string, { count: number; minPrecio: number }> = {}
       ;(varsRaw || []).forEach((v: any) => {
         const pid = v.producto_id
@@ -61,6 +66,7 @@ export default function TiendaPage() {
       })
 
       setCategorias(cats || [])
+      setSubcategorias(subs || [])
       setProductos(prods || [])
       setVariantesPorProducto(mapa)
       setLoading(false)
@@ -68,18 +74,75 @@ export default function TiendaPage() {
     cargar()
   }, [])
 
+  // Subcategorías de la categoría activa
+  const subcatsFiltradas = useMemo(() => {
+    if (catActiva === 'todas') return []
+    return subcategorias.filter(s => s.categoria_id === catActiva)
+  }, [subcategorias, catActiva])
+
+  // Resetear subcategoría al cambiar categoría
+  function handleCatChange(catId: string) {
+    setCatActiva(catId)
+    setSubcatActiva('todas')
+  }
+
+  // Helper: precio efectivo de un producto (para ordenar)
+  function precioEfectivo(p: any) {
+    const info = variantesPorProducto[p.id]
+    if (info && info.count > 0) return p.precio_desde ?? info.minPrecio
+    return p.precio
+  }
+
   const productosFiltrados = useMemo(() => {
-    if (catActiva === 'todas') return productos
-    return productos.filter(
-      p => p.tienda_subcategorias?.categoria_id === catActiva
-    )
-  }, [productos, catActiva])
+    let lista = productos
+
+    // Filtro por categoría
+    if (catActiva !== 'todas') {
+      lista = lista.filter(
+        p => p.tienda_subcategorias?.categoria_id === catActiva
+      )
+    }
+
+    // Filtro por subcategoría
+    if (subcatActiva !== 'todas') {
+      lista = lista.filter(p => p.subcategoria_id === subcatActiva)
+    }
+
+    // Filtro por búsqueda
+    if (busqueda.trim()) {
+      const q = busqueda.trim().toLowerCase()
+      lista = lista.filter(
+        p =>
+          p.nombre.toLowerCase().includes(q) ||
+          (p.descripcion || '').toLowerCase().includes(q) ||
+          (p.tienda_subcategorias?.nombre || '').toLowerCase().includes(q)
+      )
+    }
+
+    // Ordenar
+    if (orden === 'relevancia') {
+      // Destacados primero, después por orden original
+      lista = [...lista].sort((a, b) => {
+        if (a.destacado && !b.destacado) return -1
+        if (!a.destacado && b.destacado) return 1
+        return (a.orden ?? 0) - (b.orden ?? 0)
+      })
+    } else if (orden === 'precio_asc') {
+      lista = [...lista].sort(
+        (a, b) => precioEfectivo(a) - precioEfectivo(b)
+      )
+    } else if (orden === 'precio_desc') {
+      lista = [...lista].sort(
+        (a, b) => precioEfectivo(b) - precioEfectivo(a)
+      )
+    }
+
+    return lista
+  }, [productos, catActiva, subcatActiva, busqueda, orden, variantesPorProducto])
 
   const handleAdd = (e: React.MouseEvent, p: any) => {
     e.preventDefault()
     e.stopPropagation()
-    // Si tiene variantes, no se debería poder llegar acá (botón deshabilitado),
-    // pero por las dudas:
     if (variantesPorProducto[p.id]?.count > 0) return
     addItem({
       productoId: p.id,
@@ -102,6 +165,14 @@ export default function TiendaPage() {
             <h1>
               Catálogo <span className="highlight">RG</span>
             </h1>
+            <div className="hero-search">
+              <input
+                type="search"
+                placeholder="Buscar productos..."
+                value={busqueda}
+                onChange={e => setBusqueda(e.target.value)}
+              />
+            </div>
           </div>
         </header>
 
@@ -112,7 +183,7 @@ export default function TiendaPage() {
               <nav>
                 <button
                   className={catActiva === 'todas' ? 'active' : ''}
-                  onClick={() => setCatActiva('todas')}
+                  onClick={() => handleCatChange('todas')}
                 >
                   Ver todo
                 </button>
@@ -120,28 +191,95 @@ export default function TiendaPage() {
                   <button
                     key={cat.id}
                     className={catActiva === cat.id ? 'active' : ''}
-                    onClick={() => setCatActiva(cat.id)}
+                    onClick={() => handleCatChange(cat.id)}
                   >
                     {cat.nombre}
                   </button>
                 ))}
               </nav>
+
+              {subcatsFiltradas.length > 0 && (
+                <>
+                  <h3 className="subcat-title">SUBCATEGORÍAS</h3>
+                  <nav>
+                    <button
+                      className={subcatActiva === 'todas' ? 'active-sub' : ''}
+                      onClick={() => setSubcatActiva('todas')}
+                    >
+                      Todas
+                    </button>
+                    {subcatsFiltradas.map(sub => (
+                      <button
+                        key={sub.id}
+                        className={subcatActiva === sub.id ? 'active-sub' : ''}
+                        onClick={() => setSubcatActiva(sub.id)}
+                      >
+                        {sub.nombre}
+                      </button>
+                    ))}
+                  </nav>
+                </>
+              )}
+
+              <h3 className="orden-title">ORDENAR POR</h3>
+              <nav>
+                <button
+                  className={orden === 'relevancia' ? 'active-orden' : ''}
+                  onClick={() => setOrden('relevancia')}
+                >
+                  ⭐ Relevancia
+                </button>
+                <button
+                  className={orden === 'precio_asc' ? 'active-orden' : ''}
+                  onClick={() => setOrden('precio_asc')}
+                >
+                  ↑ Menor precio
+                </button>
+                <button
+                  className={orden === 'precio_desc' ? 'active-orden' : ''}
+                  onClick={() => setOrden('precio_desc')}
+                >
+                  ↓ Mayor precio
+                </button>
+              </nav>
             </div>
           </aside>
 
           <main className="content">
+            {/* Resultados count */}
+            {!loading && (
+              <div className="results-bar">
+                <span>
+                  {productosFiltrados.length} producto
+                  {productosFiltrados.length !== 1 ? 's' : ''}
+                  {busqueda.trim() && (
+                    <> para "<strong>{busqueda.trim()}</strong>"</>
+                  )}
+                </span>
+                {busqueda.trim() && (
+                  <button
+                    className="clear-search"
+                    onClick={() => setBusqueda('')}
+                  >
+                    Limpiar búsqueda
+                  </button>
+                )}
+              </div>
+            )}
+
             {loading ? (
               <div className="loader">Cargando...</div>
             ) : productosFiltrados.length === 0 ? (
-              <div className="loader">No hay productos en esta categoría</div>
+              <div className="loader">
+                {busqueda.trim()
+                  ? 'No se encontraron productos con esa búsqueda.'
+                  : 'No hay productos en esta categoría.'}
+              </div>
             ) : (
               <div className="products-grid">
                 {productosFiltrados.map(p => {
                   const info = variantesPorProducto[p.id]
                   const tieneVariantes = (info?.count ?? 0) > 0
-                  // Precio a mostrar:
-                  // - Con variantes: el min de variantes (o precio_desde si está)
-                  // - Sin variantes: el precio normal
                   const precioMostrar = tieneVariantes
                     ? p.precio_desde ?? info!.minPrecio
                     : p.precio
@@ -151,6 +289,9 @@ export default function TiendaPage() {
                       key={p.id}
                       className="product-card"
                     >
+                      {p.destacado && (
+                        <span className="destacado-badge">⭐ Destacado</span>
+                      )}
                       <div className="img-holder">
                         <img
                           src={p.imagen_url || '/placeholder.png'}
@@ -229,6 +370,34 @@ export default function TiendaPage() {
             font-family: 'Playfair Display', serif;
           }
 
+          /* BUSCADOR */
+          .hero-search {
+            margin-top: 24px;
+            max-width: 480px;
+            margin-left: auto;
+            margin-right: auto;
+          }
+          .hero-search input {
+            width: 100%;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-family: inherit;
+            background: rgba(255, 255, 255, 0.12);
+            color: white;
+            backdrop-filter: blur(6px);
+            outline: none;
+            transition: 0.3s;
+          }
+          .hero-search input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+          }
+          .hero-search input:focus {
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 0 2px rgba(214, 40, 40, 0.4);
+          }
+
           .main-grid {
             display: grid;
             grid-template-columns: 280px 1fr;
@@ -249,6 +418,12 @@ export default function TiendaPage() {
             color: #999;
             margin-bottom: 20px;
           }
+          .subcat-title,
+          .orden-title {
+            margin-top: 28px;
+            padding-top: 20px;
+            border-top: 1px solid #f0f0f0;
+          }
           .sticky-box button {
             width: 100%;
             text-align: left;
@@ -265,8 +440,38 @@ export default function TiendaPage() {
             background: #d62828;
             color: white;
           }
-          .sticky-box button:hover:not(.active) {
+          .sticky-box button.active-sub {
+            background: #fee2e2;
+            color: #d62828;
+          }
+          .sticky-box button.active-orden {
+            background: #111;
+            color: white;
+          }
+          .sticky-box button:hover:not(.active):not(.active-sub):not(.active-orden) {
             background: #f0f0f0;
+          }
+
+          /* RESULTS BAR */
+          .results-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            font-size: 0.88rem;
+            color: #888;
+          }
+          .results-bar strong {
+            color: #333;
+          }
+          .clear-search {
+            background: none;
+            border: none;
+            color: #d62828;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.82rem;
+            text-decoration: underline;
           }
 
           .loader {
@@ -293,12 +498,28 @@ export default function TiendaPage() {
             color: #1a1a1a;
             padding: 12px;
             text-decoration: none;
+            position: relative;
           }
           .product-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
             border-color: #d62828;
           }
+
+          .destacado-badge {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: #fffbeb;
+            color: #b45309;
+            font-size: 0.68rem;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 50px;
+            z-index: 2;
+            letter-spacing: 0.3px;
+          }
+
           .img-holder {
             height: 220px;
             background: #f5f5f5;
