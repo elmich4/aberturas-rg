@@ -7,15 +7,6 @@ import HeroSlider from '@/components/HeroSlider'
 import UbicacionSection from '@/components/UbicacionSection'
 import { supabase } from '@/lib/supabase'
 
-const SERVICIOS = [
-  { icon: '🪟', title: 'Ventanas & Puertas',  desc: 'Serie 20, Serie 25, Modena, Colonial, Guillotina. Aluminio de alta resistencia con vidrio simple, doble o DVH.', href: '/contacto' },
-  { icon: '🏠', title: 'Cielorraso PVC',       desc: 'Tablillas de 6 a 10mm, con o sin aislación. Instalación prolija y duradera para cualquier ambiente.', href: '/contacto' },
-  { icon: '🧱', title: 'Yeso / Durlock',       desc: 'Cielorrasos y tabiques de placa. Terminación perfecta, aislación acústica y térmica garantizada.', href: '/contacto' },
-  { icon: '🔒', title: 'Rejas & Seguridad',    desc: 'Rejas fijas y puertas reja en varillas de 12mm y 16mm. Protección sin sacrificar el diseño.', href: '/contacto' },
-  { icon: '🎨', title: 'Persianas',             desc: 'PVC blanco, aluminio en varios colores, imitación madera. Enrollables y de accionamiento manual.', href: '/contacto' },
-  { icon: '📐', title: 'Medida a pedido',       desc: 'Cada abertura se fabrica a la medida exacta de tu vano. Sin compromisos ni adaptaciones.', href: '/contacto' },
-]
-
 const PORQUES = [
   { title: 'Precio justo',       desc: 'Sin intermediarios. Fabricamos y colocamos nosotros mismos.' },
   { title: 'Garantía escrita',   desc: 'Si algo falla, volvemos sin costo adicional.' },
@@ -72,7 +63,7 @@ export default function HomePage() {
   return (
     <PublicLayout>
 
-      {/* ── BÚSQUEDA + CATEGORÍAS (NUEVO) ── */}
+      {/* ── BÚSQUEDA + CATEGORÍAS ── */}
       <section style={{ background: '#FAFAF8', paddingTop: 48, paddingBottom: 56, borderBottom: '1px solid #ede8e2' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 20px' }}>
 
@@ -89,7 +80,6 @@ export default function HomePage() {
             <span style={{ color: '#D62828', fontStyle: 'italic' }}>buscando?</span>
           </h2>
 
-          {/* Buscador */}
           <div style={{ maxWidth: 600, margin: '0 auto 40px', position: 'relative' }}>
             <form action="/tienda" method="get" style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
               <input
@@ -133,7 +123,6 @@ export default function HomePage() {
             </form>
           </div>
 
-          {/* Categorías en iconos */}
           <div className="home-cats-grid">
             {CATEGORIAS.map((cat) => (
               <Link key={cat.slug} href={`/tienda?categoria=${cat.slug}`}>
@@ -164,48 +153,48 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── HERO ── */}
-      <section className="hero-section" style={{ display: 'flex', alignItems: 'center', background: 'linear-gradient(135deg,#FAFAF8 0%,#f5f0eb 100%)', position: 'relative', overflow: 'hidden', padding: '48px 20px' }}>
+      {/* ── HERO (altura reducida) ── */}
+      <section className="hero-section" style={{ display: 'flex', alignItems: 'center', background: 'linear-gradient(135deg,#FAFAF8 0%,#f5f0eb 100%)', position: 'relative', overflow: 'hidden', padding: '36px 20px', minHeight: 'unset', maxHeight: '55vh' }}>
         <HeroSlider />
         <div style={{ position: 'absolute', right: -80, top: -80, width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle,rgba(214,40,40,.07) 0%,transparent 70%)', pointerEvents: 'none' }} />
         <div style={{ maxWidth: 1200, margin: '0 auto', width: '100%', position: 'relative', zIndex: 1 }}>
           <div className="grid-2col">
             <div>
-              <div style={{ display: 'inline-block', background: 'rgba(214,40,40,.08)', color: '#D62828', borderRadius: 4, padding: '4px 12px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 20, border: '1px solid rgba(214,40,40,.15)' }}>
+              <div style={{ display: 'inline-block', background: 'rgba(214,40,40,.08)', color: '#D62828', borderRadius: 4, padding: '4px 12px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 16, border: '1px solid rgba(214,40,40,.15)' }}>
                 {c('hero__badge')}
               </div>
-              <h1 style={{ fontFamily:"'Playfair Display',serif", fontSize: 'clamp(38px,5vw,66px)', fontWeight: 900, lineHeight: 1.08, color: '#1a1a1a', margin: '0 0 20px' }}>
+              <h1 style={{ fontFamily:"'Playfair Display',serif", fontSize: 'clamp(34px,4.5vw,58px)', fontWeight: 900, lineHeight: 1.08, color: '#1a1a1a', margin: '0 0 16px' }}>
                 {c('hero__titulo_linea1')}<br />
                 <em style={{ color: '#D62828', fontStyle: 'italic' }}>{c('hero__titulo_linea2')}</em>
               </h1>
-              <p style={{ fontSize: 'clamp(15px,2vw,18px)', lineHeight: 1.75, color: '#555', maxWidth: 460, margin: '0 0 32px' }}>
+              <p style={{ fontSize: 'clamp(14px,1.8vw,17px)', lineHeight: 1.7, color: '#555', maxWidth: 440, margin: '0 0 24px' }}>
                 {c('hero__subtitulo')}
               </p>
               <div className="hero-btns" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                <Link href="/presupuesto" style={{ background: '#D62828', color: '#fff', borderRadius: 10, padding: '14px 26px', textDecoration: 'none', fontFamily:"'Barlow Condensed',sans-serif", fontWeight: 700, fontSize: 16, textTransform: 'uppercase', letterSpacing: 1, boxShadow: '0 4px 16px rgba(214,40,40,.35)' }}>
+                <Link href="/presupuesto" style={{ background: '#D62828', color: '#fff', borderRadius: 10, padding: '12px 24px', textDecoration: 'none', fontFamily:"'Barlow Condensed',sans-serif", fontWeight: 700, fontSize: 15, textTransform: 'uppercase', letterSpacing: 1, boxShadow: '0 4px 16px rgba(214,40,40,.35)' }}>
                   Pedir presupuesto →
                 </Link>
                 <a href="https://wa.me/59897699854" target="_blank" rel="noopener noreferrer"
-                  style={{ background: 'transparent', color: '#1a1a1a', border: '2px solid #1a1a1a', borderRadius: 10, padding: '14px 26px', textDecoration: 'none', fontFamily:"'Barlow Condensed',sans-serif", fontWeight: 700, fontSize: 16, textTransform: 'uppercase', letterSpacing: 1 }}>
+                  style={{ background: 'transparent', color: '#1a1a1a', border: '2px solid #1a1a1a', borderRadius: 10, padding: '12px 24px', textDecoration: 'none', fontFamily:"'Barlow Condensed',sans-serif", fontWeight: 700, fontSize: 15, textTransform: 'uppercase', letterSpacing: 1 }}>
                   💬 WhatsApp
                 </a>
               </div>
             </div>
 
             {/* Stats card — oculta en mobile */}
-            <div className="hero-stats-card" style={{ background: '#fff', borderRadius: 20, boxShadow: '0 20px 60px rgba(0,0,0,.1)', padding: 40, border: '1px solid #f0ebe4' }}>
+            <div className="hero-stats-card" style={{ background: '#fff', borderRadius: 20, boxShadow: '0 20px 60px rgba(0,0,0,.1)', padding: 32, border: '1px solid #f0ebe4' }}>
               <div className="grid-2col-sm">
                 {STATS.map(s => (
                   <div key={s.num} style={{ textAlign: 'center' }}>
-                    <div style={{ fontFamily:"'Playfair Display',serif", fontSize: 44, fontWeight: 900, color: '#D62828', lineHeight: 1, marginBottom: 6 }}>{s.num}</div>
-                    <div style={{ fontSize: 13, color: '#888', fontWeight: 500 }}>{s.label}</div>
+                    <div style={{ fontFamily:"'Playfair Display',serif", fontSize: 38, fontWeight: 900, color: '#D62828', lineHeight: 1, marginBottom: 4 }}>{s.num}</div>
+                    <div style={{ fontSize: 12, color: '#888', fontWeight: 500 }}>{s.label}</div>
                   </div>
                 ))}
               </div>
-              <div style={{ borderTop: '1px solid #f0ebe4', marginTop: 28, paddingTop: 20, textAlign: 'center' }}>
-                <div style={{ fontSize: 13, color: '#888', marginBottom: 12 }}>¿Necesitás un presupuesto ahora?</div>
+              <div style={{ borderTop: '1px solid #f0ebe4', marginTop: 22, paddingTop: 16, textAlign: 'center' }}>
+                <div style={{ fontSize: 12, color: '#888', marginBottom: 10 }}>¿Necesitás un presupuesto ahora?</div>
                 <a href="https://wa.me/59897699854?text=Hola!%20Necesito%20un%20presupuesto" target="_blank" rel="noopener noreferrer"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#25D366', color: '#fff', borderRadius: 8, padding: '10px 20px', textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#25D366', color: '#fff', borderRadius: 8, padding: '9px 18px', textDecoration: 'none', fontWeight: 600, fontSize: 13 }}>
                   💬 Escribinos ahora
                 </a>
               </div>
@@ -213,36 +202,12 @@ export default function HomePage() {
           </div>
 
           {/* Mobile stats row */}
-          <div className="nav-mobile" style={{ gap: 0, marginTop: 32, background: '#fff', borderRadius: 14, overflow: 'hidden', border: '1px solid #ede8e2' }}>
+          <div className="nav-mobile" style={{ gap: 0, marginTop: 24, background: '#fff', borderRadius: 14, overflow: 'hidden', border: '1px solid #ede8e2' }}>
             {STATS.map((s, i) => (
-              <div key={s.num} style={{ flex: 1, textAlign: 'center', padding: '14px 8px', borderRight: i < STATS.length - 1 ? '1px solid #ede8e2' : 'none' }}>
-                <div style={{ fontFamily:"'Playfair Display',serif", fontSize: 26, fontWeight: 900, color: '#D62828', lineHeight: 1 }}>{s.num}</div>
+              <div key={s.num} style={{ flex: 1, textAlign: 'center', padding: '12px 8px', borderRight: i < STATS.length - 1 ? '1px solid #ede8e2' : 'none' }}>
+                <div style={{ fontFamily:"'Playfair Display',serif", fontSize: 24, fontWeight: 900, color: '#D62828', lineHeight: 1 }}>{s.num}</div>
                 <div style={{ fontSize: 10, color: '#888', marginTop: 3, lineHeight: 1.3 }}>{s.label}</div>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── SERVICIOS ── */}
-      <section className="section-pad" style={{ padding: '72px 20px', background: '#fff' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 48 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 3, color: '#D62828', marginBottom: 12 }}>Lo que hacemos</div>
-            <h2 style={{ fontFamily:"'Playfair Display',serif", fontSize: 'clamp(28px,4vw,46px)', fontWeight: 700, color: '#1a1a1a', margin: 0 }}>
-              Soluciones completas<br /><em style={{ color: '#D62828' }}>para tu obra</em>
-            </h2>
-          </div>
-          <div className="grid-auto">
-            {SERVICIOS.map(s => (
-              <Link key={s.title} href={s.href} style={{ textDecoration: 'none', display: 'block', background: '#FAFAF8', borderRadius: 16, border: '1px solid #ede8e2', padding: 24, transition: 'all .2s' }}
-                onMouseEnter={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.transform = 'translateY(-4px)'; el.style.boxShadow = '0 12px 32px rgba(0,0,0,.08)'; el.style.borderColor = '#D62828' }}
-                onMouseLeave={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.transform = 'translateY(0)'; el.style.boxShadow = 'none'; el.style.borderColor = '#ede8e2' }}>
-                <div style={{ fontSize: 34, marginBottom: 14 }}>{s.icon}</div>
-                <div style={{ fontFamily:"'Playfair Display',serif", fontSize: 19, fontWeight: 700, color: '#1a1a1a', marginBottom: 8 }}>{s.title}</div>
-                <div style={{ fontSize: 14, color: '#777', lineHeight: 1.7, marginBottom: 12 }}>{s.desc}</div>
-                <div style={{ fontSize: 13, color: '#D62828', fontWeight: 600 }}>Ver más →</div>
-              </Link>
             ))}
           </div>
         </div>
