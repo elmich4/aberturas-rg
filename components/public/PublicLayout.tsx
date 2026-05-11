@@ -33,7 +33,6 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
   const [anuncios, setAnuncios] = useState<Anuncio[]>([])
   const [anuncioIdx, setAnuncioIdx] = useState(0)
   const [animating, setAnimating] = useState(false)
-  const [barraVisible, setBarraVisible] = useState(true)
 
   useEffect(() => {
     supabase
@@ -67,232 +66,126 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
   return (
     <div style={{ minHeight: '100vh', background: '#FAFAF8', color: '#1a1a1a', fontFamily: "'DM Sans', sans-serif" }}>
 
-      {/* ── Barra de anuncios ── */}
-      {anuncios.length > 0 && barraVisible && (
-        <div style={{
-          background: '#111',
-          color: '#fff',
-          position: 'relative',
-          zIndex: 101,
-          overflow: 'hidden',
-        }}>
-          <div style={{
-            maxWidth: 1200,
-            margin: '0 auto',
-            padding: '8px 40px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: 36,
-            position: 'relative',
-          }}>
-            {/* Flecha izquierda */}
-            {anuncios.length > 1 && (
-              <button
-                onClick={() => {
-                  setAnimating(true)
-                  setTimeout(() => {
-                    setAnuncioIdx(prev => (prev - 1 + anuncios.length) % anuncios.length)
-                    setAnimating(false)
-                  }, 400)
-                }}
-                style={{
-                  position: 'absolute',
-                  left: 12,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  color: '#888',
-                  cursor: 'pointer',
-                  fontSize: 14,
-                  padding: '4px 6px',
-                  lineHeight: 1,
-                }}
-                aria-label="Anuncio anterior"
-              >
-                ‹
-              </button>
-            )}
+      {/* ── Barra de anuncios + Navbar (sticky juntos) ── */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 100 }}>
 
-            {/* Texto del anuncio */}
+        {/* Barra de anuncios */}
+        {anuncios.length > 0 && (
+          <div style={{
+            background: '#111',
+            color: '#fff',
+            overflow: 'hidden',
+          }}>
             <div style={{
-              textAlign: 'center',
-              transition: 'opacity 0.4s ease, transform 0.4s ease',
-              opacity: animating ? 0 : 1,
-              transform: animating ? 'translateY(-8px)' : 'translateY(0)',
+              maxWidth: 1200,
+              margin: '0 auto',
+              padding: '7px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: 32,
             }}>
-              {anuncioActual?.link ? (
-                <a
-                  href={anuncioActual.link}
-                  style={{
-                    color: '#fff',
-                    textDecoration: 'none',
+              <div style={{
+                textAlign: 'center',
+                transition: 'opacity 0.4s ease, transform 0.4s ease',
+                opacity: animating ? 0 : 1,
+                transform: animating ? 'translateY(-8px)' : 'translateY(0)',
+              }}>
+                {anuncioActual?.link ? (
+                  <a
+                    href={anuncioActual.link}
+                    style={{
+                      color: '#fff',
+                      textDecoration: 'none',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      letterSpacing: 0.8,
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    {anuncioActual.texto}
+                    <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.7 }}>→</span>
+                  </a>
+                ) : (
+                  <span style={{
                     fontSize: 12,
                     fontWeight: 600,
                     letterSpacing: 0.8,
                     textTransform: 'uppercase',
-                  }}
-                >
-                  {anuncioActual.texto}
-                  <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.7 }}>→</span>
-                </a>
-              ) : (
-                <span style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                  letterSpacing: 0.8,
-                  textTransform: 'uppercase',
-                }}>
-                  {anuncioActual?.texto}
-                </span>
-              )}
-            </div>
-
-            {/* Flecha derecha */}
-            {anuncios.length > 1 && (
-              <button
-                onClick={() => siguiente()}
-                style={{
-                  position: 'absolute',
-                  right: 36,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  color: '#888',
-                  cursor: 'pointer',
-                  fontSize: 14,
-                  padding: '4px 6px',
-                  lineHeight: 1,
-                }}
-                aria-label="Siguiente anuncio"
-              >
-                ›
-              </button>
-            )}
-
-            {/* Botón cerrar */}
-            <button
-              onClick={() => setBarraVisible(false)}
-              style={{
-                position: 'absolute',
-                right: 10,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'none',
-                border: 'none',
-                color: '#555',
-                cursor: 'pointer',
-                fontSize: 16,
-                padding: '2px 6px',
-                lineHeight: 1,
-              }}
-              aria-label="Cerrar barra de anuncios"
-            >
-              ×
-            </button>
-
-            {/* Indicadores de puntos */}
-            {anuncios.length > 1 && (
-              <div style={{
-                position: 'absolute',
-                bottom: 2,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                display: 'flex',
-                gap: 4,
-              }}>
-                {anuncios.map((_, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      width: i === anuncioIdx ? 12 : 4,
-                      height: 3,
-                      borderRadius: 2,
-                      background: i === anuncioIdx ? '#D62828' : '#444',
-                      transition: 'all 0.3s ease',
-                      cursor: 'pointer',
-                    }}
-                    onClick={() => {
-                      setAnimating(true)
-                      setTimeout(() => {
-                        setAnuncioIdx(i)
-                        setAnimating(false)
-                      }, 400)
-                    }}
-                  />
-                ))}
+                  }}>
+                    {anuncioActual?.texto}
+                  </span>
+                )}
               </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── Navbar ── */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(250,250,248,0.97)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #e8e4df' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 16px', display: 'flex', alignItems: 'center', height: 60, gap: 12 }}>
-
-          {/* Logo */}
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', flexShrink: 0 }}>
-            <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#D62828,#A01E1E)', border: '2px solid #F7B731', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily:"'Bebas Neue',sans-serif", fontSize: 13, color: '#fff', letterSpacing: 2, flexShrink: 0 }}>RG</div>
-            <div className="hide-mobile">
-              <div style={{ fontFamily:"'Playfair Display',serif", fontSize: 16, fontWeight: 700, color: '#1a1a1a', lineHeight: 1 }}>Aberturas RG</div>
-              <div style={{ fontSize: 9, color: '#D62828', textTransform: 'uppercase', letterSpacing: 2, fontWeight: 600 }}>Uruguay</div>
             </div>
-          </Link>
-
-          {/* Desktop nav */}
-          <nav className="nav-desktop" style={{ gap: 2, marginLeft: 24, flex: 1 }}>
-            {NAV.map(n => {
-              const active = pathname === n.href
-              return (
-                <Link key={n.href} href={n.href} style={{ padding: '6px 12px', borderRadius: 6, textDecoration: 'none', fontSize: 13, fontWeight: active ? 600 : 400, color: active ? '#D62828' : '#555', background: active ? 'rgba(214,40,40,0.06)' : 'transparent', whiteSpace: 'nowrap' }}>
-                  {n.label}
-                </Link>
-              )
-            })}
-          </nav>
-
-          {/* Desktop CTA */}
-          <div className="nav-desktop" style={{ gap: 8, alignItems: 'center', flexShrink: 0 }}>
-            <a href="https://wa.me/59897699854" target="_blank" rel="noopener noreferrer"
-              style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#25D366', color: '#fff', borderRadius: 7, padding: '7px 14px', textDecoration: 'none', fontWeight: 600, fontSize: 13, whiteSpace: 'nowrap' }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-              097 699 854
-            </a>
-          </div>
-
-          {/* Mobile: WA + hamburger */}
-          <div className="nav-mobile" style={{ marginLeft: 'auto', gap: 8, alignItems: 'center' }}>
-            <a href="https://wa.me/59897699854" target="_blank" rel="noopener noreferrer"
-              style={{ width: 36, height: 36, borderRadius: '50%', background: '#25D366', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-            </a>
-            <button onClick={() => setMobileOpen(!mobileOpen)}
-              style={{ width: 36, height: 36, background: 'transparent', border: '1px solid #e0e0e0', borderRadius: 8, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: 8, flexShrink: 0 }}>
-              <div style={{ width: 18, height: 2, background: mobileOpen ? '#D62828' : '#1a1a1a', borderRadius: 2, transition: 'all .2s', transform: mobileOpen ? 'rotate(45deg) translateY(6px)' : 'none' }} />
-              <div style={{ width: 18, height: 2, background: '#1a1a1a', borderRadius: 2, opacity: mobileOpen ? 0 : 1, transition: 'opacity .2s' }} />
-              <div style={{ width: 18, height: 2, background: mobileOpen ? '#D62828' : '#1a1a1a', borderRadius: 2, transition: 'all .2s', transform: mobileOpen ? 'rotate(-45deg) translateY(-6px)' : 'none' }} />
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile dropdown menu */}
-        {mobileOpen && (
-          <div style={{ background: '#fff', borderTop: '1px solid #e8e4df', padding: '8px 16px 16px' }}>
-            {NAV.map(n => {
-              const active = pathname === n.href
-              return (
-                <Link key={n.href} href={n.href} onClick={() => setMobileOpen(false)}
-                  style={{ display: 'block', padding: '12px 4px', textDecoration: 'none', fontSize: 16, fontWeight: active ? 700 : 400, color: active ? '#D62828' : '#1a1a1a', borderBottom: '1px solid #f5f5f5' }}>
-                  {n.label}
-                </Link>
-              )
-            })}
           </div>
         )}
-      </header>
+
+        {/* Navbar */}
+        <header style={{ background: 'rgba(250,250,248,0.97)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #e8e4df' }}>
+          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 16px', display: 'flex', alignItems: 'center', height: 60, gap: 12 }}>
+
+            {/* Logo */}
+            <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', flexShrink: 0 }}>
+              <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#D62828,#A01E1E)', border: '2px solid #F7B731', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily:"'Bebas Neue',sans-serif", fontSize: 13, color: '#fff', letterSpacing: 2, flexShrink: 0 }}>RG</div>
+              <div className="hide-mobile">
+                <div style={{ fontFamily:"'Playfair Display',serif", fontSize: 16, fontWeight: 700, color: '#1a1a1a', lineHeight: 1 }}>Aberturas RG</div>
+                <div style={{ fontSize: 9, color: '#D62828', textTransform: 'uppercase', letterSpacing: 2, fontWeight: 600 }}>Uruguay</div>
+              </div>
+            </Link>
+
+            {/* Desktop nav */}
+            <nav className="nav-desktop" style={{ gap: 2, marginLeft: 24, flex: 1 }}>
+              {NAV.map(n => {
+                const active = pathname === n.href
+                return (
+                  <Link key={n.href} href={n.href} style={{ padding: '6px 12px', borderRadius: 6, textDecoration: 'none', fontSize: 13, fontWeight: active ? 600 : 400, color: active ? '#D62828' : '#555', background: active ? 'rgba(214,40,40,0.06)' : 'transparent', whiteSpace: 'nowrap' }}>
+                    {n.label}
+                  </Link>
+                )
+              })}
+            </nav>
+
+            {/* Desktop CTA */}
+            <div className="nav-desktop" style={{ gap: 8, alignItems: 'center', flexShrink: 0 }}>
+              <a href="https://wa.me/59897699854" target="_blank" rel="noopener noreferrer"
+                style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#25D366', color: '#fff', borderRadius: 7, padding: '7px 14px', textDecoration: 'none', fontWeight: 600, fontSize: 13, whiteSpace: 'nowrap' }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                097 699 854
+              </a>
+            </div>
+
+            {/* Mobile: WA + hamburger */}
+            <div className="nav-mobile" style={{ marginLeft: 'auto', gap: 8, alignItems: 'center' }}>
+              <a href="https://wa.me/59897699854" target="_blank" rel="noopener noreferrer"
+                style={{ width: 36, height: 36, borderRadius: '50%', background: '#25D366', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              </a>
+              <button onClick={() => setMobileOpen(!mobileOpen)}
+                style={{ width: 36, height: 36, background: 'transparent', border: '1px solid #e0e0e0', borderRadius: 8, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: 8, flexShrink: 0 }}>
+                <div style={{ width: 18, height: 2, background: mobileOpen ? '#D62828' : '#1a1a1a', borderRadius: 2, transition: 'all .2s', transform: mobileOpen ? 'rotate(45deg) translateY(6px)' : 'none' }} />
+                <div style={{ width: 18, height: 2, background: '#1a1a1a', borderRadius: 2, opacity: mobileOpen ? 0 : 1, transition: 'opacity .2s' }} />
+                <div style={{ width: 18, height: 2, background: mobileOpen ? '#D62828' : '#1a1a1a', borderRadius: 2, transition: 'all .2s', transform: mobileOpen ? 'rotate(-45deg) translateY(-6px)' : 'none' }} />
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile dropdown menu */}
+          {mobileOpen && (
+            <div style={{ background: '#fff', borderTop: '1px solid #e8e4df', padding: '8px 16px 16px' }}>
+              {NAV.map(n => {
+                const active = pathname === n.href
+                return (
+                  <Link key={n.href} href={n.href} onClick={() => setMobileOpen(false)}
+                    style={{ display: 'block', padding: '12px 4px', textDecoration: 'none', fontSize: 16, fontWeight: active ? 700 : 400, color: active ? '#D62828' : '#1a1a1a', borderBottom: '1px solid #f5f5f5' }}>
+                    {n.label}
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+        </header>
+      </div>
 
       {/* Page content */}
       <main>{children}</main>
