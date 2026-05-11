@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import PublicLayout from '@/components/public/PublicLayout'
 import Link from 'next/link'
@@ -24,6 +25,7 @@ function fmt(n: number) {
 type Orden = 'relevancia' | 'precio_asc' | 'precio_desc'
 
 export default function TiendaPage() {
+  const searchParams = useSearchParams()
   const [categorias, setCategorias] = useState<any[]>([])
   const [subcategorias, setSubcategorias] = useState<any[]>([])
   const [productos, setProductos] = useState<any[]>([])
@@ -35,6 +37,7 @@ export default function TiendaPage() {
   const [busqueda, setBusqueda] = useState('')
   const [orden, setOrden] = useState<Orden>('relevancia')
   const [loading, setLoading] = useState(true)
+  const [paramsAplicados, setParamsAplicados] = useState(false)
   const { addItem } = useCart()
 
   useEffect(() => {
@@ -73,6 +76,35 @@ export default function TiendaPage() {
     }
     cargar()
   }, [])
+
+  // Leer query params de la URL (?q=... y ?categoria=...)
+  useEffect(() => {
+    if (loading || paramsAplicados) return
+
+    const qParam = searchParams.get('q')
+    const catParam = searchParams.get('categoria')
+
+    if (qParam) {
+      setBusqueda(qParam)
+    }
+
+    if (catParam && categorias.length > 0) {
+      // Buscar categoría por slug (nombre en minúscula con guiones)
+      const cat = categorias.find(
+        c =>
+          c.nombre
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/\s+/g, '-') === catParam.toLowerCase()
+      )
+      if (cat) {
+        setCatActiva(cat.id)
+      }
+    }
+
+    setParamsAplicados(true)
+  }, [loading, paramsAplicados, searchParams, categorias])
 
   // Subcategorías de la categoría activa
   const subcatsFiltradas = useMemo(() => {
