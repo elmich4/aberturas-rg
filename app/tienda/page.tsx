@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import PublicLayout from '@/components/public/PublicLayout'
@@ -25,6 +25,14 @@ function fmt(n: number) {
 type Orden = 'relevancia' | 'precio_asc' | 'precio_desc'
 
 export default function TiendaPage() {
+  return (
+    <Suspense fallback={<PublicLayout><div style={{ padding: 60, textAlign: 'center', color: '#999' }}>Cargando tienda...</div></PublicLayout>}>
+      <TiendaContent />
+    </Suspense>
+  )
+}
+
+function TiendaContent() {
   const searchParams = useSearchParams()
   const [categorias, setCategorias] = useState<any[]>([])
   const [subcategorias, setSubcategorias] = useState<any[]>([])
