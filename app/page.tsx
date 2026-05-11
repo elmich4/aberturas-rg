@@ -1,3 +1,4 @@
+'use client'
 import Image from "next/image";
 import Link from "next/link";
 import PublicLayout from "@/components/public/PublicLayout";
@@ -51,7 +52,7 @@ export default function Home() {
                     outline: 'none',
                     boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
                     WebkitAppearance: 'none',
-                    appearance: 'none',
+                    appearance: 'none' as const,
                   }}
                 />
                 <button
@@ -231,7 +232,6 @@ export default function Home() {
       </main>
 
       <style jsx global>{`
-        /* ── HOME: Categorías grid ── */
         .home-cats-grid {
           display: grid;
           grid-template-columns: repeat(6, 1fr);
@@ -274,8 +274,6 @@ export default function Home() {
         .home-cat-item:hover .home-cat-name {
           color: #D62828;
         }
-
-        /* ── HOME: Products grid ── */
         .home-products-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
@@ -287,8 +285,6 @@ export default function Home() {
         .home-product-card:hover h3 {
           color: #D62828 !important;
         }
-
-        /* ── HOME: Responsive ── */
         @media (max-width: 768px) {
           .home-cats-grid {
             grid-template-columns: repeat(3, 1fr) !important;
