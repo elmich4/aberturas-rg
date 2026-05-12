@@ -126,7 +126,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
 
             {/* Logo */}
             <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', flexShrink: 0 }}>
-              <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#D62828,#A01E1E)', border: '2px solid #F7B731', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily:"'Bebas Neue',sans-serif", fontSize: 13, color: '#fff', letterSpacing: 2, flexShrink: 0 }}>RG</div>
+              <img src="/logo.png" alt="RG Mejor Precio" style={{ width: 40, height: 40, objectFit: 'contain', flexShrink: 0 }} />
               <div className="hide-mobile">
                 <div style={{ fontFamily:"'Playfair Display',serif", fontSize: 16, fontWeight: 700, color: '#1a1a1a', lineHeight: 1 }}>Aberturas RG</div>
                 <div style={{ fontSize: 9, color: '#D62828', textTransform: 'uppercase', letterSpacing: 2, fontWeight: 600 }}>Uruguay</div>
@@ -195,7 +195,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           <div className="grid-auto" style={{ marginBottom: 40 }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg,#D62828,#A01E1E)', border: '2px solid #F7B731', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily:"'Bebas Neue',sans-serif", fontSize: 12, color: '#fff', letterSpacing: 2 }}>RG</div>
+                <img src="/logo.png" alt="RG Mejor Precio" style={{ width: 38, height: 38, objectFit: 'contain' }} />
                 <div style={{ fontFamily:"'Playfair Display',serif", fontSize: 15, fontWeight: 700, color: '#fff' }}>Aberturas RG</div>
               </div>
               <p style={{ fontSize: 13, lineHeight: 1.7, color: '#888', maxWidth: 260 }}>Especialistas en aberturas de aluminio y PVC. Ventanas, puertas, rejas y cielorrasos a medida.</p>
