@@ -20,6 +20,7 @@ const MENU_BASE = [
   { href: '/admin/tienda',       icon: '🛍️', label: 'Tienda'       },
   { href: '/admin/presupuestos', icon: '📋', label: 'Presupuestos', badgeKey: 'presupuestosPendientes' },
   { href: '/admin/categorias',   icon: '🗂️', label: 'Categorías'   },
+  { href: '/admin/anuncios',     icon: '📢', label: 'Anuncios'     },
 ]
 const MENU_ADMIN = [
   { href: '/admin/usuarios',  icon: '👥', label: 'Usuarios'  },
@@ -27,6 +28,17 @@ const MENU_ADMIN = [
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+
+  // Si estamos en /admin/login, renderizar solo el children sin sidebar
+  if (pathname === '/admin/login') {
+    return <>{children}</>
+  }
+
+  return <AdminShell>{children}</AdminShell>
+}
+
+function AdminShell({ children }: { children: React.ReactNode }) {
   const { vendedor, loading, logout, isAdmin } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
@@ -48,7 +60,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       if (!cancelled) setPresupuestosPendientes(count || 0)
     }
     cargarConteo()
-    // Refrescar cada vez que cambie de página por si actualizó algo
     const interval = setInterval(cargarConteo, 30000)
     return () => {
       cancelled = true
@@ -72,14 +83,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div style={{ minHeight: '100vh', display: 'flex', background: '#0f0f0f', fontFamily: "'DM Sans', sans-serif" }}>
 
       {/* Sidebar */}
-      <aside style={{ width: 220, flexShrink: 0, background: '#111', borderRight: '1px solid #1e1e1e', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh' }}>
+      <aside className="admin-sidebar" style={{ width: 220, flexShrink: 0, background: '#111', borderRight: '1px solid #1e1e1e', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh' }}>
         {/* Logo */}
         <div style={{ padding: '20px 16px', borderBottom: '1px solid #1e1e1e' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg,#D62828,#A01E1E)', border: '2px solid #F7B731', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Bebas Neue',sans-serif", fontSize: 13, color: '#fff', letterSpacing: 2, flexShrink: 0 }}>RG</div>
+            <img src="/logo.png" alt="RG" style={{ width: 34, height: 34, objectFit: 'contain', flexShrink: 0 }} />
             <div>
-              <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 700, fontSize: 14, textTransform: 'uppercase', letterSpacing: 1, color: '#fff' }}>Panel Admin</div>
-              <div style={{ fontSize: 10, color: '#D62828', fontWeight: 600 }}>Aberturas RG</div>
+              <div className="label" style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 700, fontSize: 14, textTransform: 'uppercase', letterSpacing: 1, color: '#fff' }}>Panel Admin</div>
+              <div className="label" style={{ fontSize: 10, color: '#D62828', fontWeight: 600 }}>Aberturas RG</div>
             </div>
           </div>
         </div>
@@ -92,7 +103,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             return (
               <Link key={item.href} href={item.href} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, textDecoration: 'none', background: active ? 'rgba(214,40,40,0.15)' : 'transparent', color: active ? '#fff' : '#888', borderLeft: active ? '3px solid #D62828' : '3px solid transparent', fontSize: 14, fontWeight: active ? 600 : 400, transition: 'all .15s' }}>
                 <span style={{ fontSize: 16 }}>{item.icon}</span>
-                <span style={{ flex: 1 }}>{item.label}</span>
+                <span className="label" style={{ flex: 1 }}>{item.label}</span>
                 {badgeCount > 0 && (
                   <span style={{
                     background: '#D62828',
@@ -115,14 +126,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {isAdmin && (
             <>
               <div style={{ borderTop: '1px solid #1e1e1e', marginTop: 8, paddingTop: 8 }}>
-                <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, color: '#D62828', padding: '4px 12px 6px' }}>⭐ Admin</div>
+                <div className="label" style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, color: '#D62828', padding: '4px 12px 6px' }}>⭐ Admin</div>
               </div>
               {MENU_ADMIN.map(item => {
                 const active = pathname === item.href
                 return (
                   <Link key={item.href} href={item.href} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, textDecoration: 'none', background: active ? 'rgba(214,40,40,0.15)' : 'transparent', color: active ? '#fff' : '#888', borderLeft: active ? '3px solid #D62828' : '3px solid transparent', fontSize: 14, fontWeight: active ? 600 : 400, transition: 'all .15s' }}>
                     <span style={{ fontSize: 16 }}>{item.icon}</span>
-                    {item.label}
+                    <span className="label">{item.label}</span>
                   </Link>
                 )
               })}
@@ -134,16 +145,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {/* Links externos */}
           <div style={{ borderTop: '1px solid #1e1e1e', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Link href="/" target="_blank" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', textDecoration: 'none', color: '#555', fontSize: 12 }}>
-              🌐 Ver sitio →
+              🌐 <span className="label">Ver sitio →</span>
             </Link>
             <Link href="/ventanas" target="_blank" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', textDecoration: 'none', color: '#555', fontSize: 12 }}>
-              🧮 Calculadoras →
+              🧮 <span className="label">Calculadoras →</span>
             </Link>
           </div>
         </nav>
 
         {/* User */}
-        <div style={{ padding: '12px 16px', borderTop: '1px solid #1e1e1e' }}>
+        <div className="user-section" style={{ padding: '12px 16px', borderTop: '1px solid #1e1e1e' }}>
           <div style={{ fontSize: 12, color: '#888', marginBottom: 2 }}>👤 {vendedor.nombre}</div>
           <div style={{ fontSize: 10, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1, color: isAdmin ? '#D62828' : '#F7B731', fontWeight: 700 }}>
             {isAdmin ? '⭐ Admin' : 'Vendedor'}
