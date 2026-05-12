@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
+import { adminDB } from '@/lib/admin-db'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -87,20 +88,15 @@ export default function AdminAnunciosPage() {
 
     let result
     if (editando) {
-      result = await supabase
-        .from('anuncios_barra')
-        .update(payload)
-        .eq('id', editando.id)
+      result = await adminDB.update('anuncios_barra', payload, { id: editando.id })
     } else {
-      result = await supabase
-        .from('anuncios_barra')
-        .insert(payload)
+      result = await adminDB.insert('anuncios_barra', payload)
     }
 
     setSaving(false)
 
     if (result.error) {
-      setError('Error al guardar: ' + result.error.message)
+      setError('Error al guardar: ' + result.error)
       return
     }
 
@@ -112,9 +108,9 @@ export default function AdminAnunciosPage() {
 
   async function eliminar(id: string) {
     if (!confirm('¿Eliminar este anuncio?')) return
-    const { error } = await supabase.from('anuncios_barra').delete().eq('id', id)
-    if (error) {
-      setError('Error al eliminar: ' + error.message)
+    const result = await adminDB.delete('anuncios_barra', { id })
+    if (result.error) {
+      setError('Error al eliminar: ' + result.error)
     } else {
       setSuccess('Anuncio eliminado')
       setTimeout(() => setSuccess(null), 3000)
@@ -123,10 +119,7 @@ export default function AdminAnunciosPage() {
   }
 
   async function toggleActivo(a: Anuncio) {
-    await supabase
-      .from('anuncios_barra')
-      .update({ activo: !a.activo })
-      .eq('id', a.id)
+    await adminDB.update('anuncios_barra', { activo: !a.activo }, { id: a.id })
     cargar()
   }
 
@@ -137,8 +130,8 @@ export default function AdminAnunciosPage() {
 
     const otro = anuncios[nuevoIdx]
     await Promise.all([
-      supabase.from('anuncios_barra').update({ orden: otro.orden }).eq('id', a.id),
-      supabase.from('anuncios_barra').update({ orden: a.orden }).eq('id', otro.id),
+      adminDB.update('anuncios_barra', { orden: otro.orden }, { id: a.id }),
+      adminDB.update('anuncios_barra', { orden: a.orden }, { id: otro.id }),
     ])
     cargar()
   }

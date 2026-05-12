@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
+import { adminDB } from '@/lib/admin-db'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -92,12 +93,9 @@ export default function AdminPresupuestosPage() {
   }
 
   async function cambiarEstado(id: string, nuevo: Estado) {
-    const { error } = await supabase
-      .from('tienda_presupuestos')
-      .update({ estado: nuevo })
-      .eq('id', id)
-    if (error) {
-      alert('No se pudo actualizar: ' + error.message)
+    const result = await adminDB.update('tienda_presupuestos', { estado: nuevo }, { id })
+    if (result.error) {
+      alert('No se pudo actualizar: ' + result.error)
       return
     }
     setPresupuestos(prev =>
@@ -115,12 +113,9 @@ export default function AdminPresupuestosPage() {
       )
     )
       return
-    const { error } = await supabase
-      .from('tienda_presupuestos')
-      .delete()
-      .eq('id', p.id)
-    if (error) {
-      alert('No se pudo eliminar: ' + error.message)
+    const result = await adminDB.delete('tienda_presupuestos', { id: p.id })
+    if (result.error) {
+      alert('No se pudo eliminar: ' + result.error)
       return
     }
     setPresupuestos(prev => prev.filter(x => x.id !== p.id))
