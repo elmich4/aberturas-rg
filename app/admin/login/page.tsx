@@ -41,9 +41,8 @@ function LoginForm() {
       return
     }
 
-    // Login exitoso → redirigir al admin
-    router.push('/admin')
-    router.refresh()
+// Login exitoso → recarga completa para que el middleware lea la cookie
+    window.location.href = '/admin'
   }
 
   return (
