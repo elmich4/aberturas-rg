@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@fontsource/playfair-display": "^5.2.8",
-    "@supabase/ssr": "^0.10.2",
+    "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.105.1",
     "html2canvas": "^1.4.1",
     "next": "16.2.4",
