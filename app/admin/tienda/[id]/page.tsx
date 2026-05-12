@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import { generarSlug, generarSlugUnico } from '@/lib/slug'
+import { adminDB } from '@/lib/admin-db'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -384,42 +385,28 @@ export default function ProductoEditPage() {
     let result
     let productoId: string | null = null
     if (esNuevo) {
-      result = await supabase
-        .from('tienda_productos')
-        .insert(payload)
-        .select('id')
-        .single()
-      productoId = result.data?.id ?? null
+      result = await adminDB.insert('tienda_productos', payload, 'id')
+      productoId = result.data?.[0]?.id ?? null
     } else {
-      result = await supabase
-        .from('tienda_productos')
-        .update(payload)
-        .eq('id', idParam)
-        .select('id')
-        .single()
+      result = await adminDB.update('tienda_productos', payload, { id: idParam }, 'id')
       productoId = idParam
     }
 
     if (result.error) {
       setSaving(false)
-      setError('Error al guardar: ' + result.error.message)
+      setError('Error al guardar: ' + result.error)
       return
     }
 
     // ===== Sincronizar variantes (estrategia simple: borrar todas y reinsertar)
-    // Es seguro porque no hay FK desde otras tablas hacia variantes; los items
-    // del carrito viven en localStorage del cliente.
     if (productoId) {
-      const { error: delErr } = await supabase
-        .from('tienda_producto_variantes')
-        .delete()
-        .eq('producto_id', productoId)
+      const delResult = await adminDB.delete('tienda_producto_variantes', { producto_id: productoId })
 
-      if (delErr) {
+      if (delResult.error) {
         setSaving(false)
         setError(
           'El producto se guardó pero falló al actualizar variantes: ' +
-            delErr.message
+            delResult.error
         )
         return
       }
@@ -433,15 +420,13 @@ export default function ProductoEditPage() {
           activo: true,
         }))
 
-        const { error: insErr } = await supabase
-          .from('tienda_producto_variantes')
-          .insert(insertPayload)
+        const insResult = await adminDB.insert('tienda_producto_variantes', insertPayload)
 
-        if (insErr) {
+        if (insResult.error) {
           setSaving(false)
           setError(
             'El producto se guardó pero falló al insertar variantes: ' +
-              insErr.message
+              insResult.error
           )
           return
         }
