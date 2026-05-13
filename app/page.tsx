@@ -171,8 +171,8 @@ export default function HomePage() {
                 {c('hero__subtitulo')}
               </p>
               <div className="hero-btns" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                <Link href="/presupuesto" style={{ background: '#D62828', color: '#fff', borderRadius: 10, padding: '12px 24px', textDecoration: 'none', fontFamily:"'Barlow Condensed',sans-serif", fontWeight: 700, fontSize: 15, textTransform: 'uppercase', letterSpacing: 1, boxShadow: '0 4px 16px rgba(214,40,40,.35)' }}>
-                  Pedir presupuesto →
+                <Link href="/tienda" style={{ background: '#D62828', color: '#fff', borderRadius: 10, padding: '12px 24px', textDecoration: 'none', fontFamily:"'Barlow Condensed',sans-serif", fontWeight: 700, fontSize: 15, textTransform: 'uppercase', letterSpacing: 1, boxShadow: '0 4px 16px rgba(214,40,40,.35)' }}>
+                  Ir a la tienda →
                 </Link>
                 <a href="https://wa.me/59897699854" target="_blank" rel="noopener noreferrer"
                   style={{ background: 'transparent', color: '#1a1a1a', border: '2px solid #1a1a1a', borderRadius: 10, padding: '12px 24px', textDecoration: 'none', fontFamily:"'Barlow Condensed',sans-serif", fontWeight: 700, fontSize: 15, textTransform: 'uppercase', letterSpacing: 1 }}>
