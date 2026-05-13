@@ -4,7 +4,7 @@ import { AuthProvider } from '@/lib/auth'
 import { VendedorProvider } from '@/lib/vendedor-auth'
 import { CartProvider } from '@/lib/cart-context'
 
-const SITE_URL = 'https://aberturas-rg.vercel.app'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.aberturasrg.com.uy'
 const SITE_NAME = 'Aberturas RG'
 const SITE_DESC = 'Ventanas, puertas, rejas y cielorrasos a medida en Uruguay. Serie 20 y 25, PVC, Durlock. Instalación profesional en Montevideo y todo el país. Presupuesto online al instante.'
 
@@ -62,7 +62,7 @@ export const metadata: Metadata = {
     canonical: SITE_URL,
   },
   verification: {
-    // google: 'TU_CODIGO_VERIFICACION', // ← pegar cuando tengas Google Search Console
+    google: 'ri0bDIRFHRtR75xf-FfkDqiCwpLJEuCviCtplg2rVlk',
   },
   category: 'business',
 }
