@@ -64,39 +64,35 @@ export default function ContactoPage() {
             ))}
           </div>
 
-          {/* Right: quick links + templates */}
+          {/* Right: tienda link + WA templates */}
           <div>
             <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 32, fontWeight: 700, color: '#1a1a1a', margin: '0 0 24px' }}>¿Ya sabés qué querés?</h2>
-            <p style={{ fontSize: 15, color: '#666', marginBottom: 24, lineHeight: 1.7 }}>Usá nuestra calculadora y obtenés el precio exacto antes de escribirnos. Ahorra tiempo para los dos.</p>
+            <p style={{ fontSize: 15, color: '#666', marginBottom: 24, lineHeight: 1.7 }}>Explorá nuestro catálogo de productos con precios y pedí presupuesto directamente desde la tienda.</p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {[
-                { href: '/ventanas', icon: '🪟', title: 'Calcular ventanas', desc: 'Serie 20, 25, Modena, colonial, guillotina' },
-                { href: '/cielorraso', icon: '🏠', title: 'Calcular cielorraso PVC', desc: 'Tablillas, perfilería, aislación' },
-                { href: '/yeso', icon: '🧱', title: 'Calcular yeso/Durlock', desc: 'Cielorraso, tabique, omega' },
-                { href: '/presupuesto', icon: '📋', title: 'Presupuesto libre', desc: 'Combiná productos de distintas categorías' },
-              ].map(l => (
-                <a key={l.href} href={l.href} style={{
-                  display: 'flex', alignItems: 'center', gap: 14,
-                  padding: '14px 18px', borderRadius: 12,
-                  background: '#FAFAF8', border: '1px solid #ede8e2',
-                  textDecoration: 'none', color: '#1a1a1a',
-                  transition: 'all .15s',
-                }}
-                  onMouseEnter={e => { const a = e.currentTarget as HTMLAnchorElement; a.style.background = '#fff'; a.style.borderColor = '#D62828'; a.style.transform = 'translateX(4px)' }}
-                  onMouseLeave={e => { const a = e.currentTarget as HTMLAnchorElement; a.style.background = '#FAFAF8'; a.style.borderColor = '#ede8e2'; a.style.transform = 'translateX(0)' }}>
-                  <span style={{ fontSize: 24 }}>{l.icon}</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>{l.title}</div>
-                    <div style={{ fontSize: 12, color: '#888' }}>{l.desc}</div>
-                  </div>
-                  <span style={{ color: '#D62828', fontSize: 16 }}>→</span>
-                </a>
-              ))}
-            </div>
+            <Link href="/tienda" style={{
+              display: 'flex', alignItems: 'center', gap: 14,
+              padding: '20px 24px', borderRadius: 14,
+              background: '#D62828', color: '#fff',
+              textDecoration: 'none',
+              boxShadow: '0 4px 16px rgba(214,40,40,.35)',
+              transition: 'all .15s',
+              marginBottom: 32,
+            }}
+              onMouseEnter={e => { const a = e.currentTarget as HTMLAnchorElement; a.style.transform = 'translateY(-2px)'; a.style.boxShadow = '0 8px 24px rgba(214,40,40,.45)' }}
+              onMouseLeave={e => { const a = e.currentTarget as HTMLAnchorElement; a.style.transform = 'translateY(0)'; a.style.boxShadow = '0 4px 16px rgba(214,40,40,.35)' }}
+            >
+              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 22 }}>
+                🛍️
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 18 }}>Ir a la tienda</div>
+                <div style={{ fontSize: 13, opacity: 0.85 }}>Ver productos, precios y pedir presupuesto</div>
+              </div>
+              <span style={{ fontSize: 20 }}>→</span>
+            </Link>
 
             {/* WA message templates */}
-            <div style={{ marginTop: 32, padding: 20, background: '#FAFAF8', borderRadius: 14, border: '1px solid #ede8e2' }}>
+            <div style={{ padding: 20, background: '#FAFAF8', borderRadius: 14, border: '1px solid #ede8e2' }}>
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, color: '#888', marginBottom: 14 }}>Mensajes rápidos</div>
               {[
                 { text: 'Consulta general', msg: 'Hola! Necesito información sobre aberturas' },
