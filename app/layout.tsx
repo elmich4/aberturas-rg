@@ -64,6 +64,9 @@ export const metadata: Metadata = {
   verification: {
     google: 'ri0bDIRFHRtR75xf-FfkDqiCwpLJEuCviCtplg2rVlk',
   },
+  other: {
+    'facebook-domain-verification': '86aynmxqawa9biur2us8u7iyb8n43u',
+  },
   category: 'business',
 }
 
