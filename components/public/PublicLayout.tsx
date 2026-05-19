@@ -217,9 +217,14 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
               </a>
             </div>
           </div>
-          <div style={{ borderTop: '1px solid #222', paddingTop: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-            <div style={{ fontSize: 12, color: '#555' }}>© 2026 Aberturas RG. Todos los derechos reservados.</div>
-            <div style={{ fontSize: 12, color: '#555' }}>Montevideo · Todo Uruguay</div>
+          <div style={{ borderTop: '1px solid #222', paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ fontSize: 11, color: '#555', textAlign: 'center', lineHeight: 1.7 }}>
+              FP Fabricación Propia SAS · RUT: 220035290010 · Av. de las Instrucciones 2248, Montevideo, Uruguay
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ fontSize: 12, color: '#555' }}>© 2026 Aberturas RG. Todos los derechos reservados.</div>
+              <div style={{ fontSize: 12, color: '#555' }}>Montevideo · Todo Uruguay</div>
+            </div>
           </div>
         </div>
       </footer>
