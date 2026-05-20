@@ -1,8 +1,39 @@
 'use client'
+import { useState } from 'react'
 import PublicLayout from '@/components/public/PublicLayout'
 import Link from 'next/link'
 
 export default function ContactoPage() {
+  const [nombre, setNombre] = useState('')
+  const [telefono, setTelefono] = useState('')
+  const [mensaje, setMensaje] = useState('')
+  const [enviando, setEnviando] = useState(false)
+  const [enviado, setEnviado] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!nombre.trim() || !telefono.trim() || !mensaje.trim()) return
+    setEnviando(true)
+    setError(null)
+
+    try {
+      await fetch('/api/contacto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre, telefono, mensaje }),
+      })
+      setEnviado(true)
+      setNombre('')
+      setTelefono('')
+      setMensaje('')
+    } catch {
+      setError('No se pudo enviar el mensaje. Intentá de nuevo.')
+    } finally {
+      setEnviando(false)
+    }
+  }
+
   return (
     <PublicLayout>
 
@@ -13,61 +44,141 @@ export default function ContactoPage() {
           <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(36px,5vw,56px)', fontWeight: 900, color: '#1a1a1a', margin: '0 0 20px', lineHeight: 1.1 }}>
             Hablemos de<br /><em style={{ color: '#D62828' }}>tu proyecto</em>
           </h1>
-          <p style={{ fontSize: 17, color: '#666', lineHeight: 1.8 }}>Respondemos rápido. Escribinos por WhatsApp y te damos precio al instante.</p>
+          <p style={{ fontSize: 17, color: '#666', lineHeight: 1.8 }}>Dejanos tu consulta y te respondemos a la brevedad. También podés armar tu pedido directo desde la tienda.</p>
         </div>
       </section>
 
       {/* Main content */}
       <section style={{ padding: '80px 24px', background: '#fff' }}>
-        <div style={{ maxWidth: 1000, margin: '0 auto', display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:24 }}>
+        <div style={{ maxWidth: 1000, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 24 }}>
 
-          {/* Left: WhatsApp CTA */}
+          {/* Left: Contact form */}
           <div>
-            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 32, fontWeight: 700, color: '#1a1a1a', margin: '0 0 24px' }}>La forma más rápida</h2>
+            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 32, fontWeight: 700, color: '#1a1a1a', margin: '0 0 24px' }}>Escribinos</h2>
 
-            {/* Big WA button */}
-            <a href="https://wa.me/59897699854?text=Hola!%20Necesito%20un%20presupuesto"
-              target="_blank" rel="noopener noreferrer"
-              style={{
-                display: 'flex', alignItems: 'center', gap: 16,
-                background: '#25D366', color: '#fff', borderRadius: 16,
-                padding: '20px 24px', textDecoration: 'none',
-                marginBottom: 24,
-                boxShadow: '0 6px 24px rgba(37,211,102,0.3)',
-                transition: 'transform .15s, box-shadow .15s',
-              }}
-              onMouseEnter={e => { const a = e.currentTarget as HTMLAnchorElement; a.style.transform = 'translateY(-2px)'; a.style.boxShadow = '0 10px 32px rgba(37,211,102,0.4)' }}
-              onMouseLeave={e => { const a = e.currentTarget as HTMLAnchorElement; a.style.transform = 'translateY(0)'; a.style.boxShadow = '0 6px 24px rgba(37,211,102,0.3)' }}
-            >
-              <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            {enviado ? (
+              <div style={{
+                background: '#f0fdf4',
+                border: '1.5px solid #bbf7d0',
+                borderRadius: 16,
+                padding: '32px 28px',
+                textAlign: 'center',
+              }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: '#166534', marginBottom: 8 }}>¡Mensaje enviado!</div>
+                <p style={{ fontSize: 14, color: '#555', lineHeight: 1.6, margin: '0 0 20px' }}>
+                  Recibimos tu consulta. Te vamos a contactar a la brevedad.
+                </p>
+                <button
+                  onClick={() => setEnviado(false)}
+                  style={{
+                    background: '#111', color: 'white', border: 'none', borderRadius: 50,
+                    padding: '12px 24px', fontWeight: 700, fontSize: 14, cursor: 'pointer',
+                  }}
+                >
+                  Enviar otra consulta
+                </button>
               </div>
-              <div>
-                <div style={{ fontSize: 20, fontWeight: 700 }}>097 699 854</div>
-                <div style={{ fontSize: 14, opacity: 0.85 }}>Respondemos en minutos · Lun–Vie 9–18hs</div>
-              </div>
-            </a>
+            ) : (
+              <form onSubmit={handleSubmit}>
+                {error && (
+                  <div style={{
+                    background: '#fef2f2', color: '#b91c1c', padding: '12px 16px',
+                    borderRadius: 10, fontSize: 14, marginBottom: 16, border: '1px solid #fecaca',
+                  }}>
+                    {error}
+                  </div>
+                )}
+
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', fontSize: 14, fontWeight: 700, color: '#333', marginBottom: 6 }}>Nombre *</label>
+                  <input
+                    type="text"
+                    placeholder="Tu nombre"
+                    value={nombre}
+                    onChange={e => setNombre(e.target.value)}
+                    required
+                    disabled={enviando}
+                    style={{
+                      width: '100%', padding: '14px 16px', border: '1.5px solid #e0e0e0',
+                      borderRadius: 12, fontSize: 16, fontFamily: 'inherit', background: '#fafafa',
+                      outline: 'none', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', fontSize: 14, fontWeight: 700, color: '#333', marginBottom: 6 }}>Teléfono *</label>
+                  <input
+                    type="tel"
+                    placeholder="099 123 456"
+                    value={telefono}
+                    onChange={e => setTelefono(e.target.value)}
+                    required
+                    disabled={enviando}
+                    style={{
+                      width: '100%', padding: '14px 16px', border: '1.5px solid #e0e0e0',
+                      borderRadius: 12, fontSize: 16, fontFamily: 'inherit', background: '#fafafa',
+                      outline: 'none', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ display: 'block', fontSize: 14, fontWeight: 700, color: '#333', marginBottom: 6 }}>Mensaje *</label>
+                  <textarea
+                    placeholder="Contanos qué necesitás: medidas, tipo de abertura, consulta..."
+                    value={mensaje}
+                    onChange={e => setMensaje(e.target.value)}
+                    rows={4}
+                    required
+                    disabled={enviando}
+                    style={{
+                      width: '100%', padding: '14px 16px', border: '1.5px solid #e0e0e0',
+                      borderRadius: 12, fontSize: 16, fontFamily: 'inherit', background: '#fafafa',
+                      outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={enviando || !nombre.trim() || !telefono.trim() || !mensaje.trim()}
+                  style={{
+                    width: '100%', background: '#D62828', color: '#fff', borderRadius: 50,
+                    padding: '16px 24px', border: 'none', fontWeight: 800, fontSize: 16,
+                    cursor: 'pointer', transition: 'all 0.2s',
+                    opacity: enviando ? 0.6 : 1,
+                    boxShadow: '0 6px 20px rgba(214,40,40,0.3)',
+                  }}
+                >
+                  {enviando ? 'Enviando...' : 'Enviar consulta'}
+                </button>
+              </form>
+            )}
 
             {/* Info cards */}
-            {[
-              { icon: '📍', title: 'Cobertura', desc: 'Montevideo y todo Uruguay. Coordinamos logística para el interior.' },
-              { icon: '🕐', title: 'Horario', desc: 'Lunes a Viernes de 9:00 a 18:00. Urgencias fuera de horario por WhatsApp.' },
-              { icon: '⚡', title: 'Respuesta rápida', desc: 'Presupuesto online al instante. Por WhatsApp en menos de 2 horas.' },
-            ].map(c => (
-              <div key={c.title} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: '16px 0', borderBottom: '1px solid #f5f0eb' }}>
-                <div style={{ fontSize: 24, flexShrink: 0, marginTop: 2 }}>{c.icon}</div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 15, color: '#1a1a1a', marginBottom: 4 }}>{c.title}</div>
-                  <div style={{ fontSize: 14, color: '#777', lineHeight: 1.6 }}>{c.desc}</div>
+            <div style={{ marginTop: 32 }}>
+              {[
+                { icon: '📍', title: 'Cobertura', desc: 'Montevideo y todo Uruguay. Coordinamos logística para el interior.' },
+                { icon: '🕐', title: 'Horario', desc: 'Lunes a Viernes de 9:00 a 18:00.' },
+                { icon: '📞', title: 'Teléfono', desc: '097 699 854 — Llamadas y WhatsApp.' },
+              ].map(c => (
+                <div key={c.title} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: '16px 0', borderBottom: '1px solid #f5f0eb' }}>
+                  <div style={{ fontSize: 24, flexShrink: 0, marginTop: 2 }}>{c.icon}</div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: '#1a1a1a', marginBottom: 4 }}>{c.title}</div>
+                    <div style={{ fontSize: 14, color: '#777', lineHeight: 1.6 }}>{c.desc}</div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
 
-          {/* Right: tienda link + WA templates */}
+          {/* Right: tienda link */}
           <div>
             <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 32, fontWeight: 700, color: '#1a1a1a', margin: '0 0 24px' }}>¿Ya sabés qué querés?</h2>
-            <p style={{ fontSize: 15, color: '#666', marginBottom: 24, lineHeight: 1.7 }}>Explorá nuestro catálogo de productos con precios y pedí presupuesto directamente desde la tienda.</p>
+            <p style={{ fontSize: 15, color: '#666', marginBottom: 24, lineHeight: 1.7 }}>Explorá nuestro catálogo de productos con precios y hacé tu pedido directamente desde la tienda.</p>
 
             <Link href="/tienda" style={{
               display: 'flex', alignItems: 'center', gap: 14,
@@ -86,26 +197,29 @@ export default function ContactoPage() {
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 700, fontSize: 18 }}>Ir a la tienda</div>
-                <div style={{ fontSize: 13, opacity: 0.85 }}>Ver productos, precios y pedir presupuesto</div>
+                <div style={{ fontSize: 13, opacity: 0.85 }}>Ver productos, precios y hacer tu pedido</div>
               </div>
               <span style={{ fontSize: 20 }}>→</span>
             </Link>
 
-            {/* WA message templates */}
-            <div style={{ padding: 20, background: '#FAFAF8', borderRadius: 14, border: '1px solid #ede8e2' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, color: '#888', marginBottom: 14 }}>Mensajes rápidos</div>
+            {/* Medios de pago */}
+            <div style={{ padding: 24, background: '#FAFAF8', borderRadius: 14, border: '1px solid #ede8e2' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, color: '#888', marginBottom: 14 }}>Medios de pago</div>
               {[
-                { text: 'Consulta general', msg: 'Hola! Necesito información sobre aberturas' },
-                { text: 'Pedir visita', msg: 'Hola! Quisiera coordinar una visita para presupuesto' },
-                { text: 'Consultar medida', msg: 'Hola! Quiero consultar una medida especial' },
+                { icon: '🏦', text: 'Transferencia bancaria', detail: 'Sin recargo' },
+                { icon: '💳', text: 'Débito', detail: 'Sin recargo' },
+                { icon: '💳', text: 'Crédito en cuotas', detail: 'Con POS al entregar' },
+                { icon: '💵', text: 'Efectivo', detail: 'Contra entrega' },
               ].map(m => (
-                <a key={m.text} href={`https://wa.me/59897699854?text=${encodeURIComponent(m.msg)}`}
-                  target="_blank" rel="noopener noreferrer"
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 0', borderBottom: '1px solid #f0ebe4', textDecoration: 'none', color: '#1a1a1a', fontSize: 14 }}>
-                  <span style={{ color: '#25D366', fontSize: 16 }}>💬</span>
-                  {m.text}
-                  <span style={{ marginLeft: 'auto', fontSize: 12, color: '#aaa' }}>Abrir WA →</span>
-                </a>
+                <div key={m.text} style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '10px 0', borderBottom: '1px solid #f0ebe4',
+                  fontSize: 14, color: '#1a1a1a',
+                }}>
+                  <span style={{ fontSize: 18 }}>{m.icon}</span>
+                  <span style={{ flex: 1 }}>{m.text}</span>
+                  <span style={{ fontSize: 12, color: '#888' }}>{m.detail}</span>
+                </div>
               ))}
             </div>
           </div>

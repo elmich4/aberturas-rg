@@ -1,15 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import Link from 'next/link'
 import { useCart, CartItem } from '@/lib/cart-context'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
-
-const WA_NUMBER = '59897699854'
 
 function fmt(n: number) {
   return new Intl.NumberFormat('es-UY', {
@@ -31,93 +23,6 @@ export default function CartDrawer() {
     totalPrecio,
   } = useCart()
 
-  const [enviando, setEnviando] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  async function handleEnviarWhatsApp() {
-    if (items.length === 0) return
-    setEnviando(true)
-    setError(null)
-
-    try {
-      const itemsParaGuardar = items.map(i => ({
-        id: i.id,
-        productoId: i.productoId,
-        varianteId: i.varianteId,
-        varianteNombre: i.varianteNombre,
-        slug: i.slug,
-        nombre: i.nombre,
-        precio: i.precio,
-        unidad: i.unidad,
-        imagen_url: i.imagen_url,
-        cantidad: i.cantidad,
-        subtotal: i.precio * i.cantidad,
-      }))
-
-      const { data, error: dbError } = await supabase
-        .from('tienda_presupuestos')
-        .insert({
-          items: itemsParaGuardar,
-          total: totalPrecio,
-        })
-        .select('codigo')
-        .single()
-
-      if (dbError) throw dbError
-
-      const codigo = data?.codigo ?? null
-
-      const lineas = items.map(i => {
-        const sufijo = i.varianteNombre ? ` (${i.varianteNombre})` : ''
-        return `• ${i.nombre}${sufijo} x${i.cantidad} — ${fmt(
-          i.precio * i.cantidad
-        )}`
-      })
-
-      const mensaje = [
-        `*¡Hola! Quiero hacer el siguiente pedido:*`,
-        ``,
-        ...lineas,
-        ``,
-        `*Total: ${fmt(totalPrecio)}*`,
-        ``,
-        codigo ? `_Referencia: #${codigo}_` : '',
-      ]
-        .filter(Boolean)
-        .join('\n')
-
-      const url = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(mensaje)}`
-
-      clearCart()
-      closeCart()
-      window.open(url, '_blank')
-    } catch (e: any) {
-      console.error('Error al enviar presupuesto:', e)
-      setError(
-        'No se pudo guardar el presupuesto, pero podés enviarlo igual por WhatsApp.'
-      )
-      const lineas = items.map(i => {
-        const sufijo = i.varianteNombre ? ` (${i.varianteNombre})` : ''
-        return `• ${i.nombre}${sufijo} x${i.cantidad} — ${fmt(
-          i.precio * i.cantidad
-        )}`
-      })
-      const mensaje = [
-        `*¡Hola! Quiero hacer el siguiente pedido:*`,
-        ``,
-        ...lineas,
-        ``,
-        `*Total: ${fmt(totalPrecio)}*`,
-      ].join('\n')
-      window.open(
-        `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(mensaje)}`,
-        '_blank'
-      )
-    } finally {
-      setEnviando(false)
-    }
-  }
-
   return (
     <>
       <div
@@ -128,7 +33,7 @@ export default function CartDrawer() {
 
       <aside className={`drawer ${isOpen ? 'open' : ''}`} aria-hidden={!isOpen}>
         <header className="drawer-header">
-          <h2>Mi presupuesto</h2>
+          <h2>Mi carrito</h2>
           <button className="close-btn" onClick={closeCart} aria-label="Cerrar">
             ×
           </button>
@@ -157,11 +62,9 @@ export default function CartDrawer() {
 
         {items.length > 0 && (
           <footer className="drawer-footer">
-            {error && <div className="error">{error}</div>}
-
             <div className="totales">
               <div className="row">
-                <span>Items</span>
+                <span>Productos</span>
                 <span>{totalItems}</span>
               </div>
               <div className="row total">
@@ -170,21 +73,21 @@ export default function CartDrawer() {
               </div>
             </div>
 
-            <button
-              className="btn-wa"
-              onClick={handleEnviarWhatsApp}
-              disabled={enviando}
+            <Link
+              href="/checkout"
+              className="btn-checkout"
+              onClick={closeCart}
             >
-              {enviando ? 'Enviando...' : 'Enviar por WhatsApp'}
-            </button>
+              Finalizar pedido →
+            </Link>
 
-            <button className="btn-vaciar" onClick={clearCart} disabled={enviando}>
+            <button className="btn-vaciar" onClick={clearCart}>
               Vaciar carrito
             </button>
 
             <p className="disclaimer">
               Los precios pueden variar según medidas finales y disponibilidad.
-              Te confirmamos por WhatsApp.
+              Te confirmamos al contactarte.
             </p>
           </footer>
         )}
@@ -312,9 +215,10 @@ export default function CartDrawer() {
           font-size: 1.4rem;
         }
 
-        .btn-wa {
+        .drawer-footer :global(.btn-checkout) {
+          display: block;
           width: 100%;
-          background: #25d366;
+          background: #d62828;
           color: white;
           padding: 16px;
           border: none;
@@ -322,16 +226,15 @@ export default function CartDrawer() {
           font-weight: 800;
           font-size: 1.05rem;
           cursor: pointer;
-          box-shadow: 0 6px 20px rgba(37, 211, 102, 0.3);
+          box-shadow: 0 6px 20px rgba(214, 40, 40, 0.3);
           transition: 0.2s;
+          text-align: center;
+          text-decoration: none;
         }
-        .btn-wa:hover:not(:disabled) {
+        .drawer-footer :global(.btn-checkout:hover) {
+          background: #a51d1d;
           transform: translateY(-2px);
-          box-shadow: 0 10px 28px rgba(37, 211, 102, 0.4);
-        }
-        .btn-wa:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
+          box-shadow: 0 10px 28px rgba(214, 40, 40, 0.4);
         }
 
         .btn-vaciar {
@@ -345,7 +248,7 @@ export default function CartDrawer() {
           margin-top: 8px;
           text-decoration: underline;
         }
-        .btn-vaciar:hover:not(:disabled) {
+        .btn-vaciar:hover {
           color: #d62828;
         }
 
@@ -355,15 +258,6 @@ export default function CartDrawer() {
           margin: 12px 0 0;
           text-align: center;
           line-height: 1.5;
-        }
-
-        .error {
-          background: #fef2f2;
-          color: #b91c1c;
-          padding: 10px 14px;
-          border-radius: 8px;
-          font-size: 0.85rem;
-          margin-bottom: 12px;
         }
       `}</style>
     </>

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@supabase/supabase-js'
+import { useCart } from '@/lib/cart-context'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,6 +28,7 @@ type Anuncio = {
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { totalItems, openCart } = useCart()
 
   // ── Barra de anuncios ──
   const [anuncios, setAnuncios] = useState<Anuncio[]>([])
@@ -145,21 +147,78 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
               })}
             </nav>
 
-            {/* Desktop CTA */}
+            {/* Desktop CTA: teléfono + carrito */}
             <div className="nav-desktop" style={{ gap: 8, alignItems: 'center', flexShrink: 0 }}>
-              <a href="https://wa.me/59897699854" target="_blank" rel="noopener noreferrer"
-                style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#25D366', color: '#fff', borderRadius: 7, padding: '7px 14px', textDecoration: 'none', fontWeight: 600, fontSize: 13, whiteSpace: 'nowrap' }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                097 699 854
+              <a href="tel:+59897699854"
+                style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#555', textDecoration: 'none', fontWeight: 600, fontSize: 13, whiteSpace: 'nowrap', padding: '7px 12px', borderRadius: 7, border: '1px solid #e0e0e0', transition: 'all 0.2s' }}>
+                📞 097 699 854
               </a>
+              <button
+                onClick={openCart}
+                style={{
+                  position: 'relative',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 40, height: 40, borderRadius: 10,
+                  background: totalItems > 0 ? '#D62828' : 'transparent',
+                  color: totalItems > 0 ? 'white' : '#555',
+                  border: totalItems > 0 ? 'none' : '1px solid #e0e0e0',
+                  cursor: 'pointer', transition: 'all 0.2s',
+                }}
+                aria-label="Abrir carrito"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="9" cy="21" r="1" />
+                  <circle cx="20" cy="21" r="1" />
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                </svg>
+                {totalItems > 0 && (
+                  <span style={{
+                    position: 'absolute', top: -5, right: -5,
+                    background: '#111', color: 'white',
+                    fontSize: 10, fontWeight: 800,
+                    minWidth: 18, height: 18, borderRadius: 9,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '0 4px', border: '2px solid #FAFAF8',
+                  }}>
+                    {totalItems}
+                  </span>
+                )}
+              </button>
             </div>
 
-            {/* Mobile: WA + hamburger */}
+            {/* Mobile: carrito + hamburger */}
             <div className="nav-mobile" style={{ marginLeft: 'auto', gap: 8, alignItems: 'center' }}>
-              <a href="https://wa.me/59897699854" target="_blank" rel="noopener noreferrer"
-                style={{ width: 36, height: 36, borderRadius: '50%', background: '#25D366', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-              </a>
+              <button
+                onClick={openCart}
+                style={{
+                  position: 'relative',
+                  width: 36, height: 36, borderRadius: '50%',
+                  background: totalItems > 0 ? '#D62828' : '#f0f0f0',
+                  color: totalItems > 0 ? 'white' : '#555',
+                  border: 'none', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+                aria-label="Abrir carrito"
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="9" cy="21" r="1" />
+                  <circle cx="20" cy="21" r="1" />
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                </svg>
+                {totalItems > 0 && (
+                  <span style={{
+                    position: 'absolute', top: -4, right: -4,
+                    background: '#111', color: 'white',
+                    fontSize: 9, fontWeight: 800,
+                    minWidth: 16, height: 16, borderRadius: 8,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '0 3px', border: '2px solid white',
+                  }}>
+                    {totalItems}
+                  </span>
+                )}
+              </button>
               <button onClick={() => setMobileOpen(!mobileOpen)}
                 style={{ width: 36, height: 36, background: 'transparent', border: '1px solid #e0e0e0', borderRadius: 8, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: 8, flexShrink: 0 }}>
                 <div style={{ width: 18, height: 2, background: mobileOpen ? '#D62828' : '#1a1a1a', borderRadius: 2, transition: 'all .2s', transform: mobileOpen ? 'rotate(45deg) translateY(6px)' : 'none' }} />
@@ -181,6 +240,9 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                   </Link>
                 )
               })}
+              <a href="tel:+59897699854" style={{ display: 'block', padding: '12px 4px', textDecoration: 'none', fontSize: 16, color: '#555', borderBottom: '1px solid #f5f5f5' }}>
+                📞 097 699 854
+              </a>
             </div>
           )}
         </header>
@@ -210,11 +272,12 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, color: '#F7B731', marginBottom: 14 }}>Contacto</div>
               <div style={{ fontSize: 13, color: '#888', marginBottom: 6 }}>📍 Montevideo, Uruguay</div>
-              <div style={{ fontSize: 13, color: '#888', marginBottom: 12 }}>🕐 Lun–Vie 9:00–18:00</div>
-              <a href="https://wa.me/59897699854" target="_blank" rel="noopener noreferrer"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#25D366', color: '#fff', borderRadius: 6, padding: '8px 14px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
-                💬 097 699 854
-              </a>
+              <div style={{ fontSize: 13, color: '#888', marginBottom: 6 }}>🕐 Lun–Vie 9:00–18:00</div>
+              <div style={{ fontSize: 13, color: '#888', marginBottom: 12 }}>📞 097 699 854</div>
+              <Link href="/contacto"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#D62828', color: '#fff', borderRadius: 6, padding: '8px 14px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+                ✉️ Contactanos
+              </Link>
             </div>
           </div>
           <div style={{ borderTop: '1px solid #222', paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -228,12 +291,6 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           </div>
         </div>
       </footer>
-
-      {/* Floating WA */}
-      <a href="https://wa.me/59897699854" target="_blank" rel="noopener noreferrer"
-        style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 200, width: 52, height: 52, borderRadius: '50%', background: '#25D366', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(37,211,102,.5)' }}>
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-      </a>
     </div>
   )
 }
