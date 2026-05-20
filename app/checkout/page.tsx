@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import PublicLayout from '@/components/public/PublicLayout'
@@ -20,6 +20,150 @@ function fmt(n: number) {
   }).format(n)
 }
 
+// ── Componente Mapa con Leaflet ──
+function MapaPicker({
+  lat,
+  lng,
+  onSelect,
+}: {
+  lat: number | null
+  lng: number | null
+  onSelect: (lat: number, lng: number) => void
+}) {
+  const mapRef = useRef<HTMLDivElement>(null)
+  const mapInstanceRef = useRef<any>(null)
+  const markerRef = useRef<any>(null)
+  const [mapReady, setMapReady] = useState(false)
+
+  useEffect(() => {
+    if (mapInstanceRef.current) return // ya inicializado
+
+    // Cargar Leaflet CSS
+    if (!document.querySelector('link[href*="leaflet"]')) {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
+      document.head.appendChild(link)
+    }
+
+    // Cargar Leaflet JS
+    const loadLeaflet = (): Promise<any> => {
+      if ((window as any).L) return Promise.resolve((window as any).L)
+      return new Promise((resolve) => {
+        if (document.querySelector('script[src*="leaflet"]')) {
+          const check = setInterval(() => {
+            if ((window as any).L) { clearInterval(check); resolve((window as any).L) }
+          }, 50)
+          return
+        }
+        const script = document.createElement('script')
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+        script.onload = () => resolve((window as any).L)
+        document.head.appendChild(script)
+      })
+    }
+
+    loadLeaflet().then((L) => {
+      if (!mapRef.current || mapInstanceRef.current) return
+
+      // Centrar en Montevideo por defecto
+      const defaultLat = lat || -34.9011
+      const defaultLng = lng || -56.1645
+
+      const map = L.map(mapRef.current, {
+        scrollWheelZoom: true,
+        zoomControl: true,
+      }).setView([defaultLat, defaultLng], lat ? 16 : 12)
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap',
+        maxZoom: 19,
+      }).addTo(map)
+
+      // Si ya tiene coordenadas, poner marker
+      if (lat && lng) {
+        markerRef.current = L.marker([lat, lng], {
+          icon: L.divIcon({
+            html: '<div style="width:28px;height:28px;background:#d62828;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>',
+            iconSize: [28, 28],
+            iconAnchor: [14, 14],
+            className: '',
+          }),
+        }).addTo(map)
+      }
+
+      map.on('click', (e: any) => {
+        const { lat: clickLat, lng: clickLng } = e.latlng
+        onSelect(clickLat, clickLng)
+
+        if (markerRef.current) {
+          markerRef.current.setLatLng([clickLat, clickLng])
+        } else {
+          markerRef.current = L.marker([clickLat, clickLng], {
+            icon: L.divIcon({
+              html: '<div style="width:28px;height:28px;background:#d62828;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>',
+              iconSize: [28, 28],
+              iconAnchor: [14, 14],
+              className: '',
+            }),
+          }).addTo(map)
+        }
+      })
+
+      mapInstanceRef.current = map
+      setMapReady(true)
+
+      // Fix tiles que no cargan bien al inicio
+      setTimeout(() => map.invalidateSize(), 200)
+    })
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove()
+        mapInstanceRef.current = null
+        markerRef.current = null
+      }
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <div
+        ref={mapRef}
+        style={{
+          width: '100%',
+          height: 260,
+          borderRadius: 12,
+          border: '1.5px solid #e0e0e0',
+          overflow: 'hidden',
+          background: '#f0f0f0',
+        }}
+      />
+      {!mapReady && (
+        <div style={{
+          position: 'absolute', inset: 0, display: 'flex',
+          alignItems: 'center', justifyContent: 'center',
+          background: '#f5f5f5', borderRadius: 12,
+          color: '#999', fontSize: 14,
+        }}>
+          Cargando mapa...
+        </div>
+      )}
+      {mapReady && !lat && (
+        <div style={{
+          position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)',
+          background: 'rgba(0,0,0,0.75)', color: 'white',
+          padding: '6px 14px', borderRadius: 50, fontSize: 12, fontWeight: 600,
+          pointerEvents: 'none', whiteSpace: 'nowrap',
+        }}>
+          📍 Hacé click en tu ubicación
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Página de Checkout ──
 export default function CheckoutPage() {
   const router = useRouter()
   const { items, totalItems, totalPrecio, clearCart } = useCart()
@@ -28,9 +172,16 @@ export default function CheckoutPage() {
   const [apellido, setApellido] = useState('')
   const [telefono, setTelefono] = useState('')
   const [direccion, setDireccion] = useState('')
+  const [ubicacionLat, setUbicacionLat] = useState<number | null>(null)
+  const [ubicacionLng, setUbicacionLng] = useState<number | null>(null)
   const [notas, setNotas] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  function handleMapSelect(lat: number, lng: number) {
+    setUbicacionLat(lat)
+    setUbicacionLng(lng)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -61,6 +212,8 @@ export default function CheckoutPage() {
           apellido,
           telefono,
           direccion,
+          ubicacion_lat: ubicacionLat,
+          ubicacion_lng: ubicacionLng,
           notas: notas || null,
           items: itemsParaGuardar,
           total: totalPrecio,
@@ -75,6 +228,10 @@ export default function CheckoutPage() {
 
       // Enviar email de notificación
       try {
+        const mapsUrl = ubicacionLat && ubicacionLng
+          ? `https://www.google.com/maps?q=${ubicacionLat},${ubicacionLng}`
+          : null
+
         await fetch('/api/pedidos/notificar', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -84,13 +241,13 @@ export default function CheckoutPage() {
             apellido,
             telefono,
             direccion,
+            ubicacion_url: mapsUrl,
             notas,
             items: itemsParaGuardar,
             total: totalPrecio,
           }),
         })
       } catch {
-        // Si falla el email no bloqueamos — el pedido ya está guardado
         console.warn('No se pudo enviar email de notificación')
       }
 
@@ -234,6 +391,35 @@ export default function CheckoutPage() {
                   required
                   disabled={enviando}
                 />
+              </div>
+
+              {/* Mapa */}
+              <div className="field">
+                <label>
+                  Ubicación en el mapa
+                  {ubicacionLat ? (
+                    <span className="ubicacion-ok"> ✓ Marcada</span>
+                  ) : (
+                    <span className="ubicacion-hint"> (opcional)</span>
+                  )}
+                </label>
+                <MapaPicker
+                  lat={ubicacionLat}
+                  lng={ubicacionLng}
+                  onSelect={handleMapSelect}
+                />
+                {ubicacionLat && ubicacionLng && (
+                  <div className="ubicacion-coords">
+                    <span>📍 Ubicación marcada</span>
+                    <button
+                      type="button"
+                      className="ubicacion-clear"
+                      onClick={() => { setUbicacionLat(null); setUbicacionLng(null) }}
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="field">
@@ -425,6 +611,38 @@ export default function CheckoutPage() {
           font-size: 0.78rem;
           color: #999;
           margin-top: 4px;
+        }
+
+        .ubicacion-ok {
+          color: #16a34a;
+          font-weight: 700;
+          font-size: 0.8rem;
+        }
+        .ubicacion-hint {
+          color: #999;
+          font-weight: 400;
+          font-size: 0.8rem;
+        }
+        .ubicacion-coords {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-top: 8px;
+          padding: 8px 12px;
+          background: #f0fdf4;
+          border-radius: 8px;
+          font-size: 0.82rem;
+          color: #166534;
+          font-weight: 600;
+        }
+        .ubicacion-clear {
+          background: none;
+          border: none;
+          color: #d62828;
+          font-size: 0.8rem;
+          font-weight: 600;
+          cursor: pointer;
+          text-decoration: underline;
         }
 
         .error-msg {

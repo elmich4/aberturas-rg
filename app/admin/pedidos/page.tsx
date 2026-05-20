@@ -16,6 +16,8 @@ type Pedido = {
   apellido: string
   telefono: string
   direccion: string
+  ubicacion_lat: number | null
+  ubicacion_lng: number | null
   notas: string | null
   items: any[]
   total: number
@@ -200,6 +202,23 @@ export default function AdminPedidosPage() {
                           <div style={{ fontSize: 14, marginBottom: 6 }}><strong>Nombre:</strong> {p.nombre} {p.apellido}</div>
                           <div style={{ fontSize: 14, marginBottom: 6 }}><strong>Teléfono:</strong> <a href={`tel:${p.telefono}`} style={{ color: '#d62828' }}>{p.telefono}</a></div>
                           <div style={{ fontSize: 14, marginBottom: 6 }}><strong>Dirección:</strong> {p.direccion}</div>
+                          {p.ubicacion_lat && p.ubicacion_lng && (
+                            <div style={{ fontSize: 14, marginBottom: 6 }}>
+                              <a
+                                href={`https://www.google.com/maps?q=${p.ubicacion_lat},${p.ubicacion_lng}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                                  background: '#f0fdf4', color: '#166534', padding: '6px 14px',
+                                  borderRadius: 50, fontSize: 13, fontWeight: 700,
+                                  textDecoration: 'none', border: '1px solid #bbf7d0',
+                                }}
+                              >
+                                📍 Ver ubicación en Google Maps
+                              </a>
+                            </div>
+                          )}
                           {p.notas && <div style={{ fontSize: 14, marginBottom: 6 }}><strong>Notas:</strong> {p.notas}</div>}
                         </div>
 
