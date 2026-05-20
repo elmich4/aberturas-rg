@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import PublicLayout from '@/components/public/PublicLayout'
@@ -20,57 +20,99 @@ function fmt(n: number) {
   }).format(n)
 }
 
+// ── Helpers para el mapa ──
+const MARKER_ICON_HTML = '<div style="width:28px;height:28px;background:#d62828;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>'
+
+function loadLeaflet(): Promise<any> {
+  if ((window as any).L) return Promise.resolve((window as any).L)
+  // CSS
+  if (!document.querySelector('link[href*="leaflet"]')) {
+    const link = document.createElement('link')
+    link.rel = 'stylesheet'
+    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
+    document.head.appendChild(link)
+  }
+  // JS
+  return new Promise((resolve) => {
+    if (document.querySelector('script[src*="leaflet"]')) {
+      const check = setInterval(() => {
+        if ((window as any).L) { clearInterval(check); resolve((window as any).L) }
+      }, 50)
+      return
+    }
+    const script = document.createElement('script')
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+    script.onload = () => resolve((window as any).L)
+    document.head.appendChild(script)
+  })
+}
+
+// Geocoding con Nominatim (OpenStreetMap, gratis, sin API key)
+async function geocodeDireccion(direccion: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const query = `${direccion}, Uruguay`
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=uy&limit=1`,
+      { headers: { 'Accept-Language': 'es' } }
+    )
+    const data = await res.json()
+    if (data && data.length > 0) {
+      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
 // ── Componente Mapa con Leaflet ──
-function MapaPicker({
-  lat,
-  lng,
-  onSelect,
-}: {
+export type MapaPickerRef = { flyToAndMark: (lat: number, lng: number) => void }
+
+const MapaPicker = React.forwardRef<MapaPickerRef, {
   lat: number | null
   lng: number | null
   onSelect: (lat: number, lng: number) => void
-}) {
-  const mapRef = useRef<HTMLDivElement>(null)
+}>(function MapaPicker({ lat, lng, onSelect }, ref) {
+  const mapElRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<any>(null)
   const markerRef = useRef<any>(null)
+  const LRef = useRef<any>(null)
   const [mapReady, setMapReady] = useState(false)
 
+  // Exponer flyToAndMark al padre
+  React.useImperativeHandle(ref, () => ({
+    flyToAndMark(newLat: number, newLng: number) {
+      const map = mapInstanceRef.current
+      const L = LRef.current
+      if (!map || !L) return
+
+      map.flyTo([newLat, newLng], 16, { duration: 1 })
+
+      if (markerRef.current) {
+        markerRef.current.setLatLng([newLat, newLng])
+      } else {
+        markerRef.current = L.marker([newLat, newLng], {
+          icon: L.divIcon({
+            html: MARKER_ICON_HTML,
+            iconSize: [28, 28], iconAnchor: [14, 14], className: '',
+          }),
+        }).addTo(map)
+      }
+      onSelect(newLat, newLng)
+    },
+  }), [onSelect])
+
   useEffect(() => {
-    if (mapInstanceRef.current) return // ya inicializado
-
-    // Cargar Leaflet CSS
-    if (!document.querySelector('link[href*="leaflet"]')) {
-      const link = document.createElement('link')
-      link.rel = 'stylesheet'
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
-      document.head.appendChild(link)
-    }
-
-    // Cargar Leaflet JS
-    const loadLeaflet = (): Promise<any> => {
-      if ((window as any).L) return Promise.resolve((window as any).L)
-      return new Promise((resolve) => {
-        if (document.querySelector('script[src*="leaflet"]')) {
-          const check = setInterval(() => {
-            if ((window as any).L) { clearInterval(check); resolve((window as any).L) }
-          }, 50)
-          return
-        }
-        const script = document.createElement('script')
-        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
-        script.onload = () => resolve((window as any).L)
-        document.head.appendChild(script)
-      })
-    }
+    if (mapInstanceRef.current) return
 
     loadLeaflet().then((L) => {
-      if (!mapRef.current || mapInstanceRef.current) return
+      if (!mapElRef.current || mapInstanceRef.current) return
+      LRef.current = L
 
-      // Centrar en Montevideo por defecto
       const defaultLat = lat || -34.9011
       const defaultLng = lng || -56.1645
 
-      const map = L.map(mapRef.current, {
+      const map = L.map(mapElRef.current, {
         scrollWheelZoom: true,
         zoomControl: true,
       }).setView([defaultLat, defaultLng], lat ? 16 : 12)
@@ -80,31 +122,25 @@ function MapaPicker({
         maxZoom: 19,
       }).addTo(map)
 
-      // Si ya tiene coordenadas, poner marker
       if (lat && lng) {
         markerRef.current = L.marker([lat, lng], {
           icon: L.divIcon({
-            html: '<div style="width:28px;height:28px;background:#d62828;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>',
-            iconSize: [28, 28],
-            iconAnchor: [14, 14],
-            className: '',
+            html: MARKER_ICON_HTML,
+            iconSize: [28, 28], iconAnchor: [14, 14], className: '',
           }),
         }).addTo(map)
       }
 
       map.on('click', (e: any) => {
-        const { lat: clickLat, lng: clickLng } = e.latlng
-        onSelect(clickLat, clickLng)
-
+        const { lat: cLat, lng: cLng } = e.latlng
+        onSelect(cLat, cLng)
         if (markerRef.current) {
-          markerRef.current.setLatLng([clickLat, clickLng])
+          markerRef.current.setLatLng([cLat, cLng])
         } else {
-          markerRef.current = L.marker([clickLat, clickLng], {
+          markerRef.current = L.marker([cLat, cLng], {
             icon: L.divIcon({
-              html: '<div style="width:28px;height:28px;background:#d62828;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>',
-              iconSize: [28, 28],
-              iconAnchor: [14, 14],
-              className: '',
+              html: MARKER_ICON_HTML,
+              iconSize: [28, 28], iconAnchor: [14, 14], className: '',
             }),
           }).addTo(map)
         }
@@ -112,8 +148,6 @@ function MapaPicker({
 
       mapInstanceRef.current = map
       setMapReady(true)
-
-      // Fix tiles que no cargan bien al inicio
       setTimeout(() => map.invalidateSize(), 200)
     })
 
@@ -122,6 +156,7 @@ function MapaPicker({
         mapInstanceRef.current.remove()
         mapInstanceRef.current = null
         markerRef.current = null
+        LRef.current = null
       }
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -129,7 +164,7 @@ function MapaPicker({
   return (
     <div style={{ position: 'relative' }}>
       <div
-        ref={mapRef}
+        ref={mapElRef}
         style={{
           width: '100%',
           height: 260,
@@ -161,7 +196,7 @@ function MapaPicker({
       )}
     </div>
   )
-}
+})
 
 // ── Página de Checkout ──
 export default function CheckoutPage() {
@@ -175,12 +210,75 @@ export default function CheckoutPage() {
   const [ubicacionLat, setUbicacionLat] = useState<number | null>(null)
   const [ubicacionLng, setUbicacionLng] = useState<number | null>(null)
   const [notas, setNotas] = useState('')
+  const [medioPago, setMedioPago] = useState<string>('transferencia')
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [buscandoDir, setBuscandoDir] = useState(false)
+  const mapaRef = useRef<MapaPickerRef>(null)
+
+  // Configuración de medios de pago y recargos
+  const MEDIOS_PAGO = [
+    {
+      id: 'transferencia',
+      label: 'Transferencia bancaria',
+      icon: '🏦',
+      recargo: 0,
+      tag: 'Sin recargo',
+      nota: 'Solo transferencias instantáneas. Se paga al recibir el producto.',
+    },
+    {
+      id: 'debito',
+      label: 'Tarjeta de débito',
+      icon: '💳',
+      recargo: 0,
+      tag: 'Sin recargo',
+      nota: 'Con POS al momento de la entrega.',
+    },
+    {
+      id: 'efectivo',
+      label: 'Efectivo',
+      icon: '💵',
+      recargo: 0,
+      tag: 'Sin recargo',
+      nota: 'Pago contra entrega.',
+    },
+    {
+      id: 'credito_3',
+      label: 'Crédito — 3 cuotas',
+      icon: '💳',
+      recargo: 5,
+      tag: '+5% recargo',
+      nota: 'Con POS al momento de la entrega.',
+    },
+    {
+      id: 'credito_4_12',
+      label: 'Crédito — 4 a 12 cuotas',
+      icon: '💳',
+      recargo: 10,
+      tag: '+10% recargo',
+      nota: 'Con POS al momento de la entrega. Cantidad de cuotas a coordinar.',
+    },
+  ]
+
+  const medioSeleccionado = MEDIOS_PAGO.find(m => m.id === medioPago)!
+  const recargoMonto = Math.round(totalPrecio * medioSeleccionado.recargo / 100)
+  const totalFinal = totalPrecio + recargoMonto
 
   function handleMapSelect(lat: number, lng: number) {
     setUbicacionLat(lat)
     setUbicacionLng(lng)
+  }
+
+  // Geocoding: cuando el usuario sale del campo dirección, buscar en el mapa
+  async function handleDireccionBlur() {
+    const dir = direccion.trim()
+    if (dir.length < 5) return // muy corta, no buscar
+    setBuscandoDir(true)
+    const result = await geocodeDireccion(dir)
+    setBuscandoDir(false)
+    if (result && mapaRef.current) {
+      mapaRef.current.flyToAndMark(result.lat, result.lng)
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -214,9 +312,12 @@ export default function CheckoutPage() {
           direccion,
           ubicacion_lat: ubicacionLat,
           ubicacion_lng: ubicacionLng,
+          medio_pago: medioPago,
+          recargo_porcentaje: medioSeleccionado.recargo,
+          recargo_monto: recargoMonto,
           notas: notas || null,
           items: itemsParaGuardar,
-          total: totalPrecio,
+          total: totalFinal,
           estado: 'pendiente',
         })
         .select('codigo')
@@ -242,9 +343,12 @@ export default function CheckoutPage() {
             telefono,
             direccion,
             ubicacion_url: mapsUrl,
+            medio_pago: medioSeleccionado.label,
+            recargo_porcentaje: medioSeleccionado.recargo,
+            subtotal: totalPrecio,
             notas,
             items: itemsParaGuardar,
-            total: totalPrecio,
+            total: totalFinal,
           }),
         })
       } catch {
@@ -388,9 +492,13 @@ export default function CheckoutPage() {
                   placeholder="Calle, número, esquina, barrio/ciudad"
                   value={direccion}
                   onChange={e => setDireccion(e.target.value)}
+                  onBlur={handleDireccionBlur}
                   required
                   disabled={enviando}
                 />
+                <span className="hint">
+                  {buscandoDir ? '🔍 Buscando en el mapa...' : 'Al salir del campo, se marca automáticamente en el mapa'}
+                </span>
               </div>
 
               {/* Mapa */}
@@ -404,6 +512,7 @@ export default function CheckoutPage() {
                   )}
                 </label>
                 <MapaPicker
+                  ref={mapaRef}
                   lat={ubicacionLat}
                   lng={ubicacionLng}
                   onSelect={handleMapSelect}
@@ -435,13 +544,45 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Info de pago */}
-            <div className="info-card">
-              <div className="info-icon">💳</div>
-              <div>
-                <strong>¿Cómo se paga?</strong>
-                <p>Coordinamos el pago al contactarte: transferencia, débito, crédito o efectivo. Aceptamos todas las tarjetas con POS.</p>
+            {/* Método de pago */}
+            <div className="form-card" style={{ marginTop: 16 }}>
+              <h2>Método de pago</h2>
+              <p className="pago-desc">Elegí cómo querés pagar. El cobro se realiza al momento de la entrega.</p>
+
+              <div className="medios-lista">
+                {MEDIOS_PAGO.map(m => {
+                  const activo = medioPago === m.id
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      className={`medio-option ${activo ? 'activo' : ''}`}
+                      onClick={() => setMedioPago(m.id)}
+                    >
+                      <div className="medio-radio">
+                        <div className={`radio-dot ${activo ? 'checked' : ''}`} />
+                      </div>
+                      <span className="medio-icon">{m.icon}</span>
+                      <div className="medio-info">
+                        <div className="medio-label">{m.label}</div>
+                        {activo && m.nota && (
+                          <div className="medio-nota">{m.nota}</div>
+                        )}
+                      </div>
+                      <span className={`medio-tag ${m.recargo > 0 ? 'recargo' : 'gratis'}`}>
+                        {m.tag}
+                      </span>
+                    </button>
+                  )
+                })}
               </div>
+
+              {medioSeleccionado.recargo > 0 && (
+                <div className="recargo-aviso">
+                  💡 El recargo de {medioSeleccionado.recargo}% se aplica por financiación con tarjeta de crédito.
+                  El precio base es el de contado.
+                </div>
+              )}
             </div>
           </div>
 
@@ -473,14 +614,30 @@ export default function CheckoutPage() {
                   <span>Productos ({totalItems})</span>
                   <span>{fmt(totalPrecio)}</span>
                 </div>
+                {recargoMonto > 0 && (
+                  <div className="summary-row recargo-row">
+                    <span>Recargo {medioSeleccionado.label} ({medioSeleccionado.recargo}%)</span>
+                    <span>+{fmt(recargoMonto)}</span>
+                  </div>
+                )}
                 <div className="summary-row">
                   <span>Envío</span>
                   <span className="envio-tag">A coordinar</span>
                 </div>
+                <div className="summary-row">
+                  <span>Pago</span>
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>{medioSeleccionado.icon} {medioSeleccionado.label}</span>
+                </div>
                 <div className="summary-row total-row">
                   <span>Total</span>
-                  <strong>{fmt(totalPrecio)}</strong>
+                  <strong>{fmt(totalFinal)}</strong>
                 </div>
+                {recargoMonto > 0 && (
+                  <div className="summary-row" style={{ paddingTop: 0 }}>
+                    <span></span>
+                    <span style={{ fontSize: 12, color: '#999', textDecoration: 'line-through' }}>Contado: {fmt(totalPrecio)}</span>
+                  </div>
+                )}
               </div>
 
               <button
@@ -655,33 +812,116 @@ export default function CheckoutPage() {
           border: 1px solid #fecaca;
         }
 
-        /* Info card */
-        .info-card {
-          display: flex;
-          gap: 16px;
-          align-items: flex-start;
-          background: white;
-          border-radius: 16px;
-          padding: 20px 24px;
-          border: 1px solid #eee;
-          margin-top: 16px;
+        /* Payment selector */
+        .pago-desc {
+          font-size: 0.88rem;
+          color: #777;
+          margin: -16px 0 20px;
+          line-height: 1.5;
         }
-        .info-icon {
-          font-size: 1.8rem;
+        .medios-lista {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .medio-option {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+          padding: 14px 16px;
+          border: 1.5px solid #e8e8e8;
+          border-radius: 14px;
+          background: white;
+          cursor: pointer;
+          text-align: left;
+          transition: all 0.15s;
+          font-family: inherit;
+          width: 100%;
+        }
+        .medio-option:hover {
+          border-color: #ccc;
+          background: #fafafa;
+        }
+        .medio-option.activo {
+          border-color: #d62828;
+          background: #fef8f8;
+          box-shadow: 0 0 0 3px rgba(214, 40, 40, 0.08);
+        }
+        .medio-radio {
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          border: 2px solid #ddd;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          margin-top: 1px;
+          transition: border-color 0.15s;
+        }
+        .medio-option.activo .medio-radio {
+          border-color: #d62828;
+        }
+        .radio-dot {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background: transparent;
+          transition: background 0.15s;
+        }
+        .radio-dot.checked {
+          background: #d62828;
+        }
+        .medio-icon {
+          font-size: 1.3rem;
+          flex-shrink: 0;
+          margin-top: -1px;
+        }
+        .medio-info {
+          flex: 1;
+          min-width: 0;
+        }
+        .medio-label {
+          font-size: 0.92rem;
+          font-weight: 700;
+          color: #1a1a1a;
+        }
+        .medio-nota {
+          font-size: 0.78rem;
+          color: #888;
+          margin-top: 4px;
+          line-height: 1.4;
+        }
+        .medio-tag {
+          font-size: 0.72rem;
+          font-weight: 800;
+          padding: 3px 10px;
+          border-radius: 50px;
+          white-space: nowrap;
           flex-shrink: 0;
           margin-top: 2px;
         }
-        .info-card strong {
-          display: block;
-          font-size: 0.95rem;
-          color: #1a1a1a;
-          margin-bottom: 4px;
+        .medio-tag.gratis {
+          background: #f0fdf4;
+          color: #166534;
         }
-        .info-card p {
-          font-size: 0.85rem;
-          color: #777;
-          margin: 0;
-          line-height: 1.6;
+        .medio-tag.recargo {
+          background: #fef3c7;
+          color: #92400e;
+        }
+        .recargo-aviso {
+          margin-top: 14px;
+          padding: 12px 14px;
+          background: #fffbeb;
+          border: 1px solid #fde68a;
+          border-radius: 10px;
+          font-size: 0.82rem;
+          color: #92400e;
+          line-height: 1.5;
+        }
+        .recargo-row {
+          color: #92400e;
+          font-weight: 600;
         }
 
         /* Summary */

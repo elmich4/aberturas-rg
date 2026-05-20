@@ -18,6 +18,9 @@ type Pedido = {
   direccion: string
   ubicacion_lat: number | null
   ubicacion_lng: number | null
+  medio_pago: string
+  recargo_porcentaje: number
+  recargo_monto: number
   notas: string | null
   items: any[]
   total: number
@@ -220,6 +223,19 @@ export default function AdminPedidosPage() {
                             </div>
                           )}
                           {p.notas && <div style={{ fontSize: 14, marginBottom: 6 }}><strong>Notas:</strong> {p.notas}</div>}
+                          <div style={{ fontSize: 14, marginBottom: 6 }}>
+                            <strong>Medio de pago:</strong> {p.medio_pago || '—'}
+                            {p.recargo_porcentaje > 0 && (
+                              <span style={{
+                                marginLeft: 8, display: 'inline-block',
+                                background: '#fef3c7', color: '#92400e',
+                                padding: '2px 8px', borderRadius: 50,
+                                fontSize: 12, fontWeight: 700,
+                              }}>
+                                +{p.recargo_porcentaje}% (${fmt(p.recargo_monto)})
+                              </span>
+                            )}
+                          </div>
                         </div>
 
                         {/* Cambiar estado */}

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { codigo, nombre, apellido, telefono, direccion, ubicacion_url, notas, items, total } = body
+    const { codigo, nombre, apellido, telefono, direccion, ubicacion_url, medio_pago, recargo_porcentaje, subtotal, notas, items, total } = body
 
     const resendKey = process.env.RESEND_API_KEY
     const notifyEmail = process.env.NOTIFY_EMAIL
@@ -45,10 +45,12 @@ export async function POST(req: NextRequest) {
                 <tr><td style="padding:6px 0;color:#888;">Dirección</td><td style="padding:6px 0;font-weight:600;">${direccion}</td></tr>
                 ${notas ? `<tr><td style="padding:6px 0;color:#888;">Notas</td><td style="padding:6px 0;">${notas}</td></tr>` : ''}
                 ${ubicacion_url ? `<tr><td style="padding:6px 0;color:#888;">Ubicación</td><td style="padding:6px 0;"><a href="${ubicacion_url}" style="color:#d62828;font-weight:600;">📍 Ver en Google Maps</a></td></tr>` : ''}
+                <tr><td style="padding:6px 0;color:#888;">Medio de pago</td><td style="padding:6px 0;font-weight:600;">${medio_pago || 'No especificado'}${recargo_porcentaje > 0 ? ` (+${recargo_porcentaje}% recargo)` : ''}</td></tr>
               </table>
               <h3 style="color:#d62828;">Productos</h3>
               <pre style="background:white;padding:16px;border-radius:8px;border:1px solid #eee;font-size:14px;line-height:1.8;white-space:pre-wrap;">${lineasItems}</pre>
               <div style="margin-top:16px;padding:16px;background:white;border-radius:8px;border:1px solid #eee;text-align:right;">
+                ${subtotal && recargo_porcentaje > 0 ? `<div style="font-size:13px;color:#888;margin-bottom:4px;">Subtotal: $${Number(subtotal).toLocaleString('es-UY')} · Recargo ${recargo_porcentaje}%: $${(Number(total) - Number(subtotal)).toLocaleString('es-UY')}</div>` : ''}
                 <span style="font-size:14px;color:#888;">Total: </span>
                 <strong style="font-size:22px;color:#d62828;">${totalFmt}</strong>
               </div>
