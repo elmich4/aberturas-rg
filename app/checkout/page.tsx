@@ -47,21 +47,32 @@ function loadLeaflet(): Promise<any> {
   })
 }
 
-// Geocoding con Nominatim (OpenStreetMap, gratis, sin API key)
-async function geocodeDireccion(direccion: string): Promise<{ lat: number; lng: number } | null> {
+// Geocoding con Nominatim — devuelve múltiples resultados para que el usuario elija
+type GeoResult = { lat: number; lng: number; label: string }
+
+async function buscarDirecciones(direccion: string): Promise<GeoResult[]> {
   try {
     const query = `${direccion}, Uruguay`
     const res = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=uy&limit=1`,
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=uy&limit=5&addressdetails=1`,
       { headers: { 'Accept-Language': 'es' } }
     )
     const data = await res.json()
-    if (data && data.length > 0) {
-      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
-    }
-    return null
+    if (!data || data.length === 0) return []
+    return data.map((d: any) => {
+      const parts: string[] = []
+      if (d.address?.road) parts.push(d.address.road + (d.address?.house_number ? ' ' + d.address.house_number : ''))
+      if (d.address?.suburb || d.address?.neighbourhood) parts.push(d.address.suburb || d.address.neighbourhood)
+      if (d.address?.city || d.address?.town || d.address?.village) parts.push(d.address.city || d.address.town || d.address.village)
+      if (d.address?.state) parts.push(d.address.state)
+      return {
+        lat: parseFloat(d.lat),
+        lng: parseFloat(d.lon),
+        label: parts.length > 0 ? parts.join(', ') : d.display_name.split(',').slice(0, 3).join(','),
+      }
+    })
   } catch {
-    return null
+    return []
   }
 }
 
@@ -206,15 +217,23 @@ export default function CheckoutPage() {
   const [nombre, setNombre] = useState('')
   const [apellido, setApellido] = useState('')
   const [telefono, setTelefono] = useState('')
+  const [tipoEnvio, setTipoEnvio] = useState<'montevideo' | 'interior'>('montevideo')
   const [direccion, setDireccion] = useState('')
+  const [sugerencias, setSugerencias] = useState<GeoResult[]>([])
+  const [buscandoDir, setBuscandoDir] = useState(false)
   const [ubicacionLat, setUbicacionLat] = useState<number | null>(null)
   const [ubicacionLng, setUbicacionLng] = useState<number | null>(null)
+  // Campos extra para interior
+  const [cedula, setCedula] = useState('')
+  const [localidad, setLocalidad] = useState('')
+  const [departamento, setDepartamento] = useState('')
+  const [agenciaCarga, setAgenciaCarga] = useState('')
   const [notas, setNotas] = useState('')
   const [medioPago, setMedioPago] = useState<string>('transferencia')
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [buscandoDir, setBuscandoDir] = useState(false)
   const mapaRef = useRef<MapaPickerRef>(null)
+  const debounceRef = useRef<any>(null)
 
   // Configuración de medios de pago y recargos
   const MEDIOS_PAGO = [
@@ -269,15 +288,29 @@ export default function CheckoutPage() {
     setUbicacionLng(lng)
   }
 
-  // Geocoding: cuando el usuario sale del campo dirección, buscar en el mapa
-  async function handleDireccionBlur() {
-    const dir = direccion.trim()
-    if (dir.length < 5) return // muy corta, no buscar
-    setBuscandoDir(true)
-    const result = await geocodeDireccion(dir)
-    setBuscandoDir(false)
-    if (result && mapaRef.current) {
-      mapaRef.current.flyToAndMark(result.lat, result.lng)
+  // Buscar direcciones con debounce mientras escribe
+  function handleDireccionChange(val: string) {
+    setDireccion(val)
+    setSugerencias([])
+
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (val.trim().length < 5) return
+
+    debounceRef.current = setTimeout(async () => {
+      setBuscandoDir(true)
+      const results = await buscarDirecciones(val)
+      setSugerencias(results)
+      setBuscandoDir(false)
+    }, 600) // esperar 600ms después de que deje de escribir
+  }
+
+  function handleSugerenciaClick(s: GeoResult) {
+    setDireccion(s.label)
+    setSugerencias([])
+    setUbicacionLat(s.lat)
+    setUbicacionLng(s.lng)
+    if (mapaRef.current) {
+      mapaRef.current.flyToAndMark(s.lat, s.lng)
     }
   }
 
@@ -309,9 +342,14 @@ export default function CheckoutPage() {
           nombre,
           apellido,
           telefono,
+          tipo_envio: tipoEnvio,
           direccion,
           ubicacion_lat: ubicacionLat,
           ubicacion_lng: ubicacionLng,
+          cedula: tipoEnvio === 'interior' ? cedula : null,
+          localidad: tipoEnvio === 'interior' ? localidad : null,
+          departamento: tipoEnvio === 'interior' ? departamento : null,
+          agencia_carga: tipoEnvio === 'interior' ? agenciaCarga : null,
           medio_pago: medioPago,
           recargo_porcentaje: medioSeleccionado.recargo,
           recargo_monto: recargoMonto,
@@ -341,8 +379,13 @@ export default function CheckoutPage() {
             nombre,
             apellido,
             telefono,
+            tipo_envio: tipoEnvio,
             direccion,
             ubicacion_url: mapsUrl,
+            cedula: tipoEnvio === 'interior' ? cedula : null,
+            localidad: tipoEnvio === 'interior' ? localidad : null,
+            departamento: tipoEnvio === 'interior' ? departamento : null,
+            agencia_carga: tipoEnvio === 'interior' ? agenciaCarga : null,
             medio_pago: medioSeleccionado.label,
             recargo_porcentaje: medioSeleccionado.recargo,
             subtotal: totalPrecio,
@@ -484,21 +527,63 @@ export default function CheckoutPage() {
                 <span className="hint">Te contactamos por acá para coordinar</span>
               </div>
 
+              {/* Tipo de envío */}
               <div className="field">
+                <label>Zona de entrega *</label>
+                <div className="envio-tabs">
+                  <button
+                    type="button"
+                    className={`envio-tab ${tipoEnvio === 'montevideo' ? 'activo' : ''}`}
+                    onClick={() => setTipoEnvio('montevideo')}
+                  >
+                    🏙️ Montevideo y alrededores
+                  </button>
+                  <button
+                    type="button"
+                    className={`envio-tab ${tipoEnvio === 'interior' ? 'activo' : ''}`}
+                    onClick={() => setTipoEnvio('interior')}
+                  >
+                    🚚 Interior (agencia de carga)
+                  </button>
+                </div>
+              </div>
+
+              {/* Dirección con autocompletado */}
+              <div className="field" style={{ position: 'relative' }}>
                 <label htmlFor="direccion">Dirección de entrega *</label>
                 <input
                   id="direccion"
                   type="text"
-                  placeholder="Calle, número, esquina, barrio/ciudad"
+                  placeholder={tipoEnvio === 'montevideo'
+                    ? 'Ej: Av Rivera 1245, Montevideo'
+                    : 'Dirección donde recibe la agencia o tu domicilio'}
                   value={direccion}
-                  onChange={e => setDireccion(e.target.value)}
-                  onBlur={handleDireccionBlur}
+                  onChange={e => handleDireccionChange(e.target.value)}
+                  onFocus={() => { if (sugerencias.length > 0) setSugerencias([...sugerencias]) }}
                   required
                   disabled={enviando}
+                  autoComplete="off"
                 />
-                <span className="hint">
-                  {buscandoDir ? '🔍 Buscando en el mapa...' : 'Al salir del campo, se marca automáticamente en el mapa'}
-                </span>
+                {buscandoDir && (
+                  <span className="hint">🔍 Buscando direcciones...</span>
+                )}
+
+                {/* Dropdown de sugerencias */}
+                {sugerencias.length > 0 && (
+                  <div className="sugerencias-dropdown">
+                    {sugerencias.map((s, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        className="sugerencia-item"
+                        onClick={() => handleSugerenciaClick(s)}
+                      >
+                        <span className="sug-icon">📍</span>
+                        <span className="sug-label">{s.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Mapa */}
@@ -530,6 +615,73 @@ export default function CheckoutPage() {
                   </div>
                 )}
               </div>
+
+              {/* Campos extra para interior */}
+              {tipoEnvio === 'interior' && (
+                <div className="interior-fields">
+                  <div className="interior-header">
+                    <span>🚚</span> Datos para envío por agencia de carga
+                  </div>
+
+                  <div className="field">
+                    <label htmlFor="cedula">Cédula de Identidad *</label>
+                    <input
+                      id="cedula"
+                      type="text"
+                      placeholder="Ej: 1.234.567-8"
+                      value={cedula}
+                      onChange={e => setCedula(e.target.value)}
+                      required
+                      disabled={enviando}
+                    />
+                    <span className="hint">Requerida por la agencia para el retiro</span>
+                  </div>
+
+                  <div className="form-row two-col">
+                    <div className="field">
+                      <label htmlFor="localidad">Localidad *</label>
+                      <input
+                        id="localidad"
+                        type="text"
+                        placeholder="Ej: Pando, Las Piedras..."
+                        value={localidad}
+                        onChange={e => setLocalidad(e.target.value)}
+                        required
+                        disabled={enviando}
+                      />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="departamento">Departamento *</label>
+                      <select
+                        id="departamento"
+                        value={departamento}
+                        onChange={e => setDepartamento(e.target.value)}
+                        required
+                        disabled={enviando}
+                        className="select-depto"
+                      >
+                        <option value="">Seleccionar...</option>
+                        {['Artigas','Canelones','Cerro Largo','Colonia','Durazno','Flores','Florida','Lavalleja','Maldonado','Paysandú','Río Negro','Rivera','Rocha','Salto','San José','Soriano','Tacuarembó','Treinta y Tres'].map(d => (
+                          <option key={d} value={d}>{d}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="field">
+                    <label htmlFor="agencia">Agencia de carga deseada *</label>
+                    <input
+                      id="agencia"
+                      type="text"
+                      placeholder="Ej: DAC, Mirtrans, Agencia Central..."
+                      value={agenciaCarga}
+                      onChange={e => setAgenciaCarga(e.target.value)}
+                      required
+                      disabled={enviando}
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="field">
                 <label htmlFor="notas">Notas adicionales</label>
@@ -643,7 +795,7 @@ export default function CheckoutPage() {
               <button
                 className="btn-confirmar"
                 onClick={handleSubmit}
-                disabled={enviando || !nombre.trim() || !apellido.trim() || !telefono.trim() || !direccion.trim()}
+                disabled={enviando || !nombre.trim() || !apellido.trim() || !telefono.trim() || !direccion.trim() || (tipoEnvio === 'interior' && (!cedula.trim() || !localidad.trim() || !departamento || !agenciaCarga.trim()))}
               >
                 {enviando ? (
                   <span className="spinner-wrap">
@@ -800,6 +952,123 @@ export default function CheckoutPage() {
           font-weight: 600;
           cursor: pointer;
           text-decoration: underline;
+        }
+
+        /* Envío tabs */
+        .envio-tabs {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+        }
+        .envio-tab {
+          padding: 14px 12px;
+          border: 1.5px solid #e0e0e0;
+          border-radius: 12px;
+          background: white;
+          cursor: pointer;
+          font-family: inherit;
+          font-size: 0.88rem;
+          font-weight: 600;
+          color: #555;
+          transition: all 0.15s;
+          text-align: center;
+        }
+        .envio-tab:hover {
+          border-color: #ccc;
+          background: #fafafa;
+        }
+        .envio-tab.activo {
+          border-color: #d62828;
+          background: #fef8f8;
+          color: #d62828;
+          box-shadow: 0 0 0 3px rgba(214, 40, 40, 0.08);
+        }
+
+        /* Autocomplete dropdown */
+        .sugerencias-dropdown {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+          background: white;
+          border: 1.5px solid #e0e0e0;
+          border-top: none;
+          border-radius: 0 0 12px 12px;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+          z-index: 50;
+          max-height: 220px;
+          overflow-y: auto;
+        }
+        .sugerencia-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          width: 100%;
+          padding: 12px 14px;
+          border: none;
+          border-bottom: 1px solid #f5f5f5;
+          background: white;
+          cursor: pointer;
+          text-align: left;
+          font-family: inherit;
+          font-size: 0.88rem;
+          color: #1a1a1a;
+          transition: background 0.1s;
+        }
+        .sugerencia-item:hover {
+          background: #fef8f8;
+        }
+        .sugerencia-item:last-child {
+          border-bottom: none;
+          border-radius: 0 0 12px 12px;
+        }
+        .sug-icon {
+          flex-shrink: 0;
+          font-size: 1rem;
+        }
+        .sug-label {
+          line-height: 1.3;
+        }
+
+        /* Interior fields */
+        .interior-fields {
+          background: #fafaf8;
+          border: 1.5px solid #ede8e2;
+          border-radius: 14px;
+          padding: 20px;
+          margin-bottom: 20px;
+        }
+        .interior-header {
+          font-weight: 700;
+          font-size: 0.92rem;
+          color: #1a1a1a;
+          margin-bottom: 16px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .select-depto {
+          width: 100%;
+          padding: 14px 16px;
+          border: 1.5px solid #e0e0e0;
+          border-radius: 12px;
+          font-size: 1rem;
+          font-family: inherit;
+          color: #1a1a1a;
+          background: #fafafa;
+          outline: none;
+          box-sizing: border-box;
+          appearance: none;
+          -webkit-appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 14px center;
+          cursor: pointer;
+        }
+        .select-depto:focus {
+          border-color: #d62828;
+          box-shadow: 0 0 0 3px rgba(214, 40, 40, 0.1);
+          background-color: white;
         }
 
         .error-msg {

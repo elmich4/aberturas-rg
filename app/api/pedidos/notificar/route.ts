@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { codigo, nombre, apellido, telefono, direccion, ubicacion_url, medio_pago, recargo_porcentaje, subtotal, notas, items, total } = body
+    const { codigo, nombre, apellido, telefono, tipo_envio, direccion, ubicacion_url, cedula, localidad, departamento, agencia_carga, medio_pago, recargo_porcentaje, subtotal, notas, items, total } = body
 
     const resendKey = process.env.RESEND_API_KEY
     const notifyEmail = process.env.NOTIFY_EMAIL
@@ -43,6 +43,10 @@ export async function POST(req: NextRequest) {
                 <tr><td style="padding:6px 0;color:#888;width:120px;">Nombre</td><td style="padding:6px 0;font-weight:600;">${nombre} ${apellido}</td></tr>
                 <tr><td style="padding:6px 0;color:#888;">Teléfono</td><td style="padding:6px 0;font-weight:600;">${telefono}</td></tr>
                 <tr><td style="padding:6px 0;color:#888;">Dirección</td><td style="padding:6px 0;font-weight:600;">${direccion}</td></tr>
+                <tr><td style="padding:6px 0;color:#888;">Envío</td><td style="padding:6px 0;font-weight:600;">${tipo_envio === 'interior' ? '🚚 Interior (agencia)' : '🏙️ Montevideo y alrededores'}</td></tr>
+                ${tipo_envio === 'interior' && cedula ? `<tr><td style="padding:6px 0;color:#888;">C.I.</td><td style="padding:6px 0;font-weight:600;">${cedula}</td></tr>` : ''}
+                ${tipo_envio === 'interior' && localidad ? `<tr><td style="padding:6px 0;color:#888;">Localidad</td><td style="padding:6px 0;font-weight:600;">${localidad}, ${departamento || ''}</td></tr>` : ''}
+                ${tipo_envio === 'interior' && agencia_carga ? `<tr><td style="padding:6px 0;color:#888;">Agencia</td><td style="padding:6px 0;font-weight:600;">${agencia_carga}</td></tr>` : ''}
                 ${notas ? `<tr><td style="padding:6px 0;color:#888;">Notas</td><td style="padding:6px 0;">${notas}</td></tr>` : ''}
                 ${ubicacion_url ? `<tr><td style="padding:6px 0;color:#888;">Ubicación</td><td style="padding:6px 0;"><a href="${ubicacion_url}" style="color:#d62828;font-weight:600;">📍 Ver en Google Maps</a></td></tr>` : ''}
                 <tr><td style="padding:6px 0;color:#888;">Medio de pago</td><td style="padding:6px 0;font-weight:600;">${medio_pago || 'No especificado'}${recargo_porcentaje > 0 ? ` (+${recargo_porcentaje}% recargo)` : ''}</td></tr>

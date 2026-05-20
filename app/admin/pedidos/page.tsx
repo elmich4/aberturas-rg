@@ -18,6 +18,11 @@ type Pedido = {
   direccion: string
   ubicacion_lat: number | null
   ubicacion_lng: number | null
+  tipo_envio: string
+  cedula: string | null
+  localidad: string | null
+  departamento: string | null
+  agencia_carga: string | null
   medio_pago: string
   recargo_porcentaje: number
   recargo_monto: number
@@ -205,6 +210,28 @@ export default function AdminPedidosPage() {
                           <div style={{ fontSize: 14, marginBottom: 6 }}><strong>Nombre:</strong> {p.nombre} {p.apellido}</div>
                           <div style={{ fontSize: 14, marginBottom: 6 }}><strong>Teléfono:</strong> <a href={`tel:${p.telefono}`} style={{ color: '#d62828' }}>{p.telefono}</a></div>
                           <div style={{ fontSize: 14, marginBottom: 6 }}><strong>Dirección:</strong> {p.direccion}</div>
+                          <div style={{ fontSize: 14, marginBottom: 6 }}>
+                            <strong>Envío:</strong>{' '}
+                            <span style={{
+                              display: 'inline-block', padding: '2px 10px', borderRadius: 50,
+                              fontSize: 12, fontWeight: 700,
+                              background: p.tipo_envio === 'interior' ? '#ede9fe' : '#dbeafe',
+                              color: p.tipo_envio === 'interior' ? '#6d28d9' : '#1e40af',
+                            }}>
+                              {p.tipo_envio === 'interior' ? '🚚 Interior' : '🏙️ Montevideo'}
+                            </span>
+                          </div>
+                          {p.tipo_envio === 'interior' && (
+                            <div style={{
+                              background: '#fafaf8', border: '1px solid #ede8e2', borderRadius: 10,
+                              padding: '10px 14px', marginBottom: 6, fontSize: 13,
+                            }}>
+                              {p.cedula && <div style={{ marginBottom: 4 }}><strong>C.I.:</strong> {p.cedula}</div>}
+                              {p.localidad && <div style={{ marginBottom: 4 }}><strong>Localidad:</strong> {p.localidad}</div>}
+                              {p.departamento && <div style={{ marginBottom: 4 }}><strong>Departamento:</strong> {p.departamento}</div>}
+                              {p.agencia_carga && <div><strong>Agencia:</strong> {p.agencia_carga}</div>}
+                            </div>
+                          )}
                           {p.ubicacion_lat && p.ubicacion_lng && (
                             <div style={{ fontSize: 14, marginBottom: 6 }}>
                               <a
