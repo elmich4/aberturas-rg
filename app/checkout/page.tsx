@@ -47,52 +47,31 @@ function loadLeaflet(): Promise<any> {
   })
 }
 
-// Geocoding con Nominatim — prioriza Montevideo y alrededores
-type GeoResult = { lat: number; lng: number; label: string; esMvd: boolean }
-
-// Bounding box grande de Montevideo + Canelones + San José (alrededores)
-const MVD_VIEWBOX = '-56.45,-34.70,-55.95,-34.75' // west,north,east,south
+// Geocoding con Nominatim — busca direcciones en Uruguay
+type GeoResult = { lat: number; lng: number; label: string }
 
 async function buscarDirecciones(direccion: string): Promise<GeoResult[]> {
   try {
-    const query = `${direccion}, Montevideo, Uruguay`
-    // Búsqueda con viewbox centrado en Montevideo (bounded=0 para no excluir resultados lejanos, solo priorizarlos)
+    const query = `${direccion}, Uruguay`
     const res = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=uy&limit=8&addressdetails=1&viewbox=${MVD_VIEWBOX}&bounded=0`,
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=uy&limit=5&addressdetails=1`,
       { headers: { 'Accept-Language': 'es' } }
     )
     const data = await res.json()
     if (!data || data.length === 0) return []
 
-    const DEPTOS_PRIORIDAD = ['montevideo', 'canelones', 'san josé']
-
-    const results: GeoResult[] = data.map((d: any) => {
+    return data.map((d: any) => {
       const parts: string[] = []
       if (d.address?.road) parts.push(d.address.road + (d.address?.house_number ? ' ' + d.address.house_number : ''))
       if (d.address?.suburb || d.address?.neighbourhood) parts.push(d.address.suburb || d.address.neighbourhood)
       if (d.address?.city || d.address?.town || d.address?.village) parts.push(d.address.city || d.address.town || d.address.village)
       if (d.address?.state) parts.push(d.address.state)
-
-      const depto = (d.address?.state || '').toLowerCase()
-      const esMvd = DEPTOS_PRIORIDAD.some(p => depto.includes(p))
-
       return {
         lat: parseFloat(d.lat),
         lng: parseFloat(d.lon),
         label: parts.length > 0 ? parts.join(', ') : d.display_name.split(',').slice(0, 3).join(','),
-        esMvd,
       }
     })
-
-    // Ordenar: Montevideo/Canelones/San José primero, después el resto
-    results.sort((a, b) => {
-      if (a.esMvd && !b.esMvd) return -1
-      if (!a.esMvd && b.esMvd) return 1
-      return 0
-    })
-
-    // Limitar a 5 resultados
-    return results.slice(0, 5)
   } catch {
     return []
   }
@@ -600,11 +579,8 @@ export default function CheckoutPage() {
                         className="sugerencia-item"
                         onClick={() => handleSugerenciaClick(s)}
                       >
-                        <span className="sug-icon">{s.esMvd ? '📍' : '🗺️'}</span>
-                        <span className="sug-label">
-                          {s.label}
-                          {s.esMvd && <span className="sug-badge-mvd">Montevideo</span>}
-                        </span>
+                        <span className="sug-icon">📍</span>
+                        <span className="sug-label">{s.label}</span>
                       </button>
                     ))}
                   </div>
@@ -1055,17 +1031,6 @@ export default function CheckoutPage() {
         }
         .sug-label {
           line-height: 1.3;
-        }
-        .sug-badge-mvd {
-          display: inline-block;
-          margin-left: 6px;
-          background: #dbeafe;
-          color: #1e40af;
-          font-size: 0.68rem;
-          font-weight: 700;
-          padding: 1px 7px;
-          border-radius: 50px;
-          vertical-align: middle;
         }
 
         /* Interior fields */
