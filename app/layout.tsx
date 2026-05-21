@@ -11,8 +11,8 @@ const SITE_DESC = 'Ventanas, puertas, rejas y cielorrasos a medida en Uruguay. S
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'Aberturas RG — Ventanas y Puertas a Medida en Uruguay',
-    template: '%s · Aberturas RG Uruguay',
+    default: 'Aberturas RG Mejor Precio — Ventanas y Puertas a Medida en Uruguay',
+    template: '%s · Aberturas RG Mejor Precio',
   },
   description: SITE_DESC,
   keywords: [
@@ -41,20 +41,20 @@ export const metadata: Metadata = {
     locale: 'es_UY',
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: 'Aberturas RG — Ventanas y Puertas a Medida en Uruguay',
+    title: 'Aberturas RG Mejor Precio — Ventanas y Puertas a Medida en Uruguay',
     description: SITE_DESC,
     images: [
       {
         url: '/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'Aberturas RG — Ventanas y Puertas a Medida en Uruguay',
+        alt: 'Aberturas RG Mejor Precio — Ventanas y Puertas a Medida en Uruguay',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Aberturas RG — Ventanas y Puertas a Medida en Uruguay',
+    title: 'Aberturas RG Mejor Precio — Ventanas y Puertas a Medida en Uruguay',
     description: SITE_DESC,
     images: ['/og-image.jpg'],
   },
@@ -74,7 +74,7 @@ export const metadata: Metadata = {
 const schemaLocalBusiness = {
   '@context': 'https://schema.org',
   '@type': 'HomeAndConstructionBusiness',
-  name: 'Aberturas RG',
+  name: 'Aberturas RG Mejor Precio',
   description: SITE_DESC,
   url: SITE_URL,
   telephone: '+598-097-699-854',

@@ -10,7 +10,7 @@ import { supabase } from '@/lib/supabase'
 const PORQUES = [
   { title: 'Precio justo',       desc: 'Sin intermediarios. Fabricamos y colocamos nosotros mismos.' },
   { title: 'Garantía escrita',   desc: 'Si algo falla, volvemos sin costo adicional.' },
-  { title: 'Presupuesto online', desc: 'Consultá el costo por WhatsApp, sin esperar una visita.' },
+  { title: 'Presupuesto online', desc: 'Armá tu pedido desde la tienda, sin esperar una visita.' },
   { title: 'Envios a TODO EL PAIS',    desc: 'Enviamos a todo el país, o para retirar en nuestro local.' },
 ]
 
@@ -174,10 +174,10 @@ export default function HomePage() {
                 <Link href="/tienda" style={{ background: '#D62828', color: '#fff', borderRadius: 10, padding: '12px 24px', textDecoration: 'none', fontFamily:"'Barlow Condensed',sans-serif", fontWeight: 700, fontSize: 15, textTransform: 'uppercase', letterSpacing: 1, boxShadow: '0 4px 16px rgba(214,40,40,.35)' }}>
                   Ir a la tienda →
                 </Link>
-                <a href="https://wa.me/59897699854" target="_blank" rel="noopener noreferrer"
+                <Link href="/contacto"
                   style={{ background: 'transparent', color: '#1a1a1a', border: '2px solid #1a1a1a', borderRadius: 10, padding: '12px 24px', textDecoration: 'none', fontFamily:"'Barlow Condensed',sans-serif", fontWeight: 700, fontSize: 15, textTransform: 'uppercase', letterSpacing: 1 }}>
-                  💬 WhatsApp
-                </a>
+                  ✉️ Contactanos
+                </Link>
               </div>
             </div>
 
@@ -193,10 +193,10 @@ export default function HomePage() {
               </div>
               <div style={{ borderTop: '1px solid #f0ebe4', marginTop: 22, paddingTop: 16, textAlign: 'center' }}>
                 <div style={{ fontSize: 12, color: '#888', marginBottom: 10 }}>¿Necesitás un presupuesto ahora?</div>
-                <a href="https://wa.me/59897699854?text=Hola!%20Necesito%20un%20presupuesto" target="_blank" rel="noopener noreferrer"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#25D366', color: '#fff', borderRadius: 8, padding: '9px 18px', textDecoration: 'none', fontWeight: 600, fontSize: 13 }}>
-                  💬 Escribinos ahora
-                </a>
+                <Link href="/tienda"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#D62828', color: '#fff', borderRadius: 8, padding: '9px 18px', textDecoration: 'none', fontWeight: 600, fontSize: 13 }}>
+                  🛍️ Ver productos y precios
+                </Link>
               </div>
             </div>
           </div>
@@ -225,10 +225,10 @@ export default function HomePage() {
               <p style={{ fontSize: 15, color: '#666', lineHeight: 1.85, marginBottom: 24 }}>
                 Somos una empresa familiar que empezó con un taller y hoy cubre todo el país. Cada trabajo lo hacemos como si fuera nuestra propia casa.
               </p>
-              <a href="https://wa.me/59897699854" target="_blank" rel="noopener noreferrer"
+              <Link href="/contacto"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: '#D62828', textDecoration: 'none', fontWeight: 700, fontSize: 15, borderBottom: '2px solid #D62828', paddingBottom: 2 }}>
-                Hablemos por WhatsApp →
-              </a>
+                Contactanos →
+              </Link>
             </div>
             <div className="grid-2col-sm">
               {PORQUES.map((p,i) => (
@@ -258,7 +258,7 @@ export default function HomePage() {
           <h2 style={{ fontFamily:"'Playfair Display',serif", fontSize: 'clamp(26px,3.5vw,42px)', fontWeight: 700, color: '#1a1a1a', margin: '0 0 48px' }}>Del presupuesto a la instalación</h2>
           <div className="grid-4col" style={{ position: 'relative' }}>
             {[
-              { num: '01', title: 'Consultás', desc: 'Mandanos un mensaje por WhatsApp' },
+              { num: '01', title: 'Elegís', desc: 'Explorá la tienda y armá tu pedido' },
               { num: '02', title: 'Cotizamos', desc: 'Te respondemos con precios al instante' },
               { num: '03', title: 'Fabricamos', desc: 'A medida exacta en nuestro taller' },
               { num: '04', title: 'Enviamos a TODO EL PAIS', desc: 'Enviamos a todo el país, o para retirar en nuestro local.' },
@@ -276,11 +276,17 @@ export default function HomePage() {
       {/* ── CTA FINAL ── */}
       <section className="section-pad" style={{ padding: '56px 20px', background: '#FAFAF8', borderTop: '1px solid #ede8e2', textAlign: 'center' }}>
         <h2 style={{ fontFamily:"'Playfair Display',serif", fontSize: 'clamp(24px,3vw,38px)', fontWeight: 700, color: '#1a1a1a', margin: '0 0 14px' }}>¿Tenés un proyecto en mente?</h2>
-        <p style={{ fontSize: 16, color: '#666', marginBottom: 28 }}>Escribinos y te respondemos en minutos.</p>
-        <a href="https://wa.me/59897699854?text=Hola!%20Necesito%20un%20presupuesto" target="_blank" rel="noopener noreferrer"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: '#25D366', color: '#fff', borderRadius: 12, padding: '15px 30px', textDecoration: 'none', fontWeight: 700, fontSize: 17, boxShadow: '0 6px 24px rgba(37,211,102,.35)' }}>
-          💬 Escribir por WhatsApp
-        </a>
+        <p style={{ fontSize: 16, color: '#666', marginBottom: 28 }}>Hacé tu pedido online o escribinos y te respondemos a la brevedad.</p>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <Link href="/tienda"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: '#D62828', color: '#fff', borderRadius: 12, padding: '15px 30px', textDecoration: 'none', fontWeight: 700, fontSize: 17, boxShadow: '0 6px 24px rgba(214,40,40,.35)' }}>
+            🛍️ Ir a la tienda
+          </Link>
+          <Link href="/contacto"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: '#fff', color: '#1a1a1a', border: '2px solid #1a1a1a', borderRadius: 12, padding: '15px 30px', textDecoration: 'none', fontWeight: 700, fontSize: 17 }}>
+            ✉️ Contactanos
+          </Link>
+        </div>
       </section>
 
       {/* ── CSS para categorías del home ── */}

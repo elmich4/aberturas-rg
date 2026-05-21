@@ -19,6 +19,7 @@ const MENU_BASE = [
   { href: '/admin/precios',      icon: '💰', label: 'Precios'      },
   { href: '/admin/tienda',       icon: '🛍️', label: 'Tienda'       },
   { href: '/admin/presupuestos', icon: '📋', label: 'Presupuestos', badgeKey: 'presupuestosPendientes' },
+  { href: '/admin/pedidos',      icon: '🛒', label: 'Pedidos',      badgeKey: 'pedidosPendientes' },
   { href: '/admin/categorias',   icon: '🗂️', label: 'Categorías'   },
   { href: '/admin/anuncios',     icon: '📢', label: 'Anuncios'     },
 ]
@@ -43,21 +44,25 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const [presupuestosPendientes, setPresupuestosPendientes] = useState<number>(0)
+  const [pedidosPendientes, setPedidosPendientes] = useState<number>(0)
 
   useEffect(() => {
     if (!loading && !vendedor) router.push('/login')
   }, [loading, vendedor])
 
-  // Contador de presupuestos pendientes para el badge del menú
+  // Contador de presupuestos y pedidos pendientes para badges
   useEffect(() => {
     if (!vendedor) return
     let cancelled = false
     async function cargarConteo() {
-      const { count } = await supabase
-        .from('tienda_presupuestos')
-        .select('*', { count: 'exact', head: true })
-        .eq('estado', 'pendiente')
-      if (!cancelled) setPresupuestosPendientes(count || 0)
+      const [presup, pedidos] = await Promise.all([
+        supabase.from('tienda_presupuestos').select('*', { count: 'exact', head: true }).eq('estado', 'pendiente'),
+        supabase.from('pedidos').select('*', { count: 'exact', head: true }).eq('estado', 'pendiente'),
+      ])
+      if (!cancelled) {
+        setPresupuestosPendientes(presup.count || 0)
+        setPedidosPendientes(pedidos.count || 0)
+      }
     }
     cargarConteo()
     const interval = setInterval(cargarConteo, 30000)
@@ -77,6 +82,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
 
   const badges: Record<string, number> = {
     presupuestosPendientes,
+    pedidosPendientes,
   }
 
   return (
