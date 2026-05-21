@@ -263,20 +263,20 @@ export default function CheckoutPage() {
       nota: 'Pago contra entrega.',
     },
     {
-      id: 'credito_3',
-      label: 'Crédito — 3 cuotas',
+      id: 'pos_credito',
+      label: 'Crédito POS — Hasta 3 cuotas',
       icon: '💳',
       recargo: 5,
       tag: '+5% recargo',
       nota: 'Con POS al momento de la entrega.',
     },
     {
-      id: 'credito_4_12',
-      label: 'Crédito — 4 a 12 cuotas',
-      icon: '💳',
+      id: 'mercadopago_qr',
+      label: 'QR MercadoPago — Hasta 12 cuotas',
+      icon: '📱',
       recargo: 10,
       tag: '+10% recargo',
-      nota: 'Con POS al momento de la entrega. Cantidad de cuotas a coordinar.',
+      nota: 'Escaneás el QR al recibir. Cantidad de cuotas depende de la tarjeta.',
     },
   ]
 
