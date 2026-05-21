@@ -47,7 +47,7 @@ function loadLeaflet(): Promise<any> {
   })
 }
 
-// Geocoding con Nominatim — devuelve múltiples resultados para que el usuario elija
+// Geocoding con Nominatim — busca direcciones en Uruguay
 type GeoResult = { lat: number; lng: number; label: string }
 
 async function buscarDirecciones(direccion: string): Promise<GeoResult[]> {
@@ -59,6 +59,7 @@ async function buscarDirecciones(direccion: string): Promise<GeoResult[]> {
     )
     const data = await res.json()
     if (!data || data.length === 0) return []
+
     return data.map((d: any) => {
       const parts: string[] = []
       if (d.address?.road) parts.push(d.address.road + (d.address?.house_number ? ' ' + d.address.house_number : ''))
@@ -984,19 +985,19 @@ export default function CheckoutPage() {
           box-shadow: 0 0 0 3px rgba(214, 40, 40, 0.08);
         }
 
-        /* Autocomplete dropdown */
+        /* Autocomplete dropdown — aparece arriba del input para no taparse con el mapa */
         .sugerencias-dropdown {
           position: absolute;
-          top: 100%;
+          bottom: 100%;
           left: 0;
           right: 0;
           background: white;
           border: 1.5px solid #e0e0e0;
-          border-top: none;
-          border-radius: 0 0 12px 12px;
-          box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-          z-index: 50;
-          max-height: 220px;
+          border-bottom: none;
+          border-radius: 12px 12px 0 0;
+          box-shadow: 0 -8px 32px rgba(0,0,0,0.15);
+          z-index: 999;
+          max-height: 260px;
           overflow-y: auto;
         }
         .sugerencia-item {
@@ -1020,7 +1021,9 @@ export default function CheckoutPage() {
         }
         .sugerencia-item:last-child {
           border-bottom: none;
-          border-radius: 0 0 12px 12px;
+        }
+        .sugerencia-item:first-child {
+          border-radius: 12px 12px 0 0;
         }
         .sug-icon {
           flex-shrink: 0;
