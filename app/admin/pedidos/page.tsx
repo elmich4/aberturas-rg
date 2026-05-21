@@ -16,17 +16,18 @@ type Pedido = {
   apellido: string
   telefono: string
   direccion: string
-  ubicacion_lat: number | null
-  ubicacion_lng: number | null
   tipo_envio: string
   cedula: string | null
   localidad: string | null
   departamento: string | null
   agencia_carga: string | null
+  ubicacion_lat: number | null
+  ubicacion_lng: number | null
   medio_pago: string
   recargo_porcentaje: number
   recargo_monto: number
   notas: string | null
+  notas_admin: string | null
   items: any[]
   total: number
   estado: string
@@ -64,6 +65,13 @@ export default function AdminPedidosPage() {
   const [filtroEstado, setFiltroEstado] = useState<string>('todos')
   const [expandido, setExpandido] = useState<string | null>(null)
   const [actualizando, setActualizando] = useState<string | null>(null)
+  // Estado para edición
+  const [editando, setEditando] = useState<string | null>(null)
+  const [editData, setEditData] = useState<Partial<Pedido>>({})
+  const [guardando, setGuardando] = useState(false)
+  // Estado para notas admin
+  const [editandoNota, setEditandoNota] = useState<string | null>(null)
+  const [notaTemp, setNotaTemp] = useState('')
 
   useEffect(() => {
     cargarPedidos()
@@ -95,6 +103,80 @@ export default function AdminPedidosPage() {
     setActualizando(null)
   }
 
+  function empezarEdicion(p: Pedido) {
+    setEditando(p.id)
+    setEditData({
+      nombre: p.nombre,
+      apellido: p.apellido,
+      telefono: p.telefono,
+      direccion: p.direccion,
+      cedula: p.cedula || '',
+      localidad: p.localidad || '',
+      departamento: p.departamento || '',
+      agencia_carga: p.agencia_carga || '',
+    })
+  }
+
+  function cancelarEdicion() {
+    setEditando(null)
+    setEditData({})
+  }
+
+  async function guardarEdicion(id: string) {
+    setGuardando(true)
+    const updates: any = {
+      nombre: editData.nombre,
+      apellido: editData.apellido,
+      telefono: editData.telefono,
+      direccion: editData.direccion,
+      updated_at: new Date().toISOString(),
+    }
+    // Solo incluir campos de interior si aplica
+    const pedido = pedidos.find(p => p.id === id)
+    if (pedido?.tipo_envio === 'interior') {
+      updates.cedula = editData.cedula || null
+      updates.localidad = editData.localidad || null
+      updates.departamento = editData.departamento || null
+      updates.agencia_carga = editData.agencia_carga || null
+    }
+
+    const { error } = await supabase
+      .from('pedidos')
+      .update(updates)
+      .eq('id', id)
+
+    if (!error) {
+      setPedidos(prev =>
+        prev.map(p => (p.id === id ? { ...p, ...updates } : p))
+      )
+      setEditando(null)
+      setEditData({})
+    }
+    setGuardando(false)
+  }
+
+  function empezarEditarNota(p: Pedido) {
+    setEditandoNota(p.id)
+    setNotaTemp(p.notas_admin || '')
+  }
+
+  async function guardarNota(id: string) {
+    setGuardando(true)
+    const { error } = await supabase
+      .from('pedidos')
+      .update({ notas_admin: notaTemp || null, updated_at: new Date().toISOString() })
+      .eq('id', id)
+
+    if (!error) {
+      setPedidos(prev =>
+        prev.map(p => (p.id === id ? { ...p, notas_admin: notaTemp || null, updated_at: new Date().toISOString() } : p))
+      )
+    }
+    setEditandoNota(null)
+    setNotaTemp('')
+    setGuardando(false)
+  }
+
   const pedidosFiltrados = filtroEstado === 'todos'
     ? pedidos
     : pedidos.filter(p => p.estado === filtroEstado)
@@ -103,6 +185,12 @@ export default function AdminPedidosPage() {
     acc[e] = pedidos.filter(p => p.estado === e).length
     return acc
   }, {} as Record<string, number>)
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '8px 10px', border: '1.5px solid #ddd',
+    borderRadius: 8, fontSize: 13, fontFamily: 'inherit',
+    outline: 'none', boxSizing: 'border-box', background: '#fafafa',
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: '#f5f5f5', fontFamily: "'DM Sans', sans-serif" }}>
@@ -170,6 +258,7 @@ export default function AdminPedidosPage() {
             {pedidosFiltrados.map(p => {
               const abierto = expandido === p.id
               const colores = ESTADO_COLORES[p.estado] || ESTADO_COLORES.pendiente
+              const enEdicion = editando === p.id
 
               return (
                 <div key={p.id} style={{
@@ -179,7 +268,7 @@ export default function AdminPedidosPage() {
                 }}>
                   {/* Row principal */}
                   <div
-                    onClick={() => setExpandido(abierto ? null : p.id)}
+                    onClick={() => { setExpandido(abierto ? null : p.id); if (abierto) cancelarEdicion() }}
                     style={{
                       padding: '16px 20px', cursor: 'pointer',
                       display: 'grid', gridTemplateColumns: '80px 1fr 1fr 120px 100px 30px',
@@ -204,71 +293,158 @@ export default function AdminPedidosPage() {
                   {abierto && (
                     <div style={{ padding: '0 20px 20px', borderTop: '1px solid #f0f0f0' }}>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginTop: 16 }}>
-                        {/* Datos cliente */}
+
+                        {/* Datos cliente — modo lectura o edición */}
                         <div>
-                          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, color: '#999', marginBottom: 10 }}>Cliente</div>
-                          <div style={{ fontSize: 14, marginBottom: 6 }}><strong>Nombre:</strong> {p.nombre} {p.apellido}</div>
-                          <div style={{ fontSize: 14, marginBottom: 6 }}><strong>Teléfono:</strong> <a href={`tel:${p.telefono}`} style={{ color: '#d62828' }}>{p.telefono}</a></div>
-                          <div style={{ fontSize: 14, marginBottom: 6 }}><strong>Dirección:</strong> {p.direccion}</div>
-                          <div style={{ fontSize: 14, marginBottom: 6 }}>
-                            <strong>Envío:</strong>{' '}
-                            <span style={{
-                              display: 'inline-block', padding: '2px 10px', borderRadius: 50,
-                              fontSize: 12, fontWeight: 700,
-                              background: p.tipo_envio === 'interior' ? '#ede9fe' : '#dbeafe',
-                              color: p.tipo_envio === 'interior' ? '#6d28d9' : '#1e40af',
-                            }}>
-                              {p.tipo_envio === 'interior' ? '🚚 Interior' : '🏙️ Montevideo'}
-                            </span>
-                          </div>
-                          {p.tipo_envio === 'interior' && (
-                            <div style={{
-                              background: '#fafaf8', border: '1px solid #ede8e2', borderRadius: 10,
-                              padding: '10px 14px', marginBottom: 6, fontSize: 13,
-                            }}>
-                              {p.cedula && <div style={{ marginBottom: 4 }}><strong>C.I.:</strong> {p.cedula}</div>}
-                              {p.localidad && <div style={{ marginBottom: 4 }}><strong>Localidad:</strong> {p.localidad}</div>}
-                              {p.departamento && <div style={{ marginBottom: 4 }}><strong>Departamento:</strong> {p.departamento}</div>}
-                              {p.agencia_carga && <div><strong>Agencia:</strong> {p.agencia_carga}</div>}
-                            </div>
-                          )}
-                          {p.ubicacion_lat && p.ubicacion_lng && (
-                            <div style={{ fontSize: 14, marginBottom: 6 }}>
-                              <a
-                                href={`https://www.google.com/maps?q=${p.ubicacion_lat},${p.ubicacion_lng}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, color: '#999' }}>Cliente</div>
+                            {!enEdicion ? (
+                              <button
+                                onClick={() => empezarEdicion(p)}
                                 style={{
-                                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                                  background: '#f0fdf4', color: '#166534', padding: '6px 14px',
-                                  borderRadius: 50, fontSize: 13, fontWeight: 700,
-                                  textDecoration: 'none', border: '1px solid #bbf7d0',
+                                  background: '#f5f5f5', border: 'none', borderRadius: 6,
+                                  padding: '4px 10px', fontSize: 12, fontWeight: 600,
+                                  color: '#555', cursor: 'pointer',
                                 }}
                               >
-                                📍 Ver ubicación en Google Maps
-                              </a>
-                            </div>
-                          )}
-                          {p.notas && <div style={{ fontSize: 14, marginBottom: 6 }}><strong>Notas:</strong> {p.notas}</div>}
-                          <div style={{ fontSize: 14, marginBottom: 6 }}>
-                            <strong>Medio de pago:</strong> {p.medio_pago || '—'}
-                            {p.recargo_porcentaje > 0 && (
-                              <span style={{
-                                marginLeft: 8, display: 'inline-block',
-                                background: '#fef3c7', color: '#92400e',
-                                padding: '2px 8px', borderRadius: 50,
-                                fontSize: 12, fontWeight: 700,
-                              }}>
-                                +{p.recargo_porcentaje}% (${fmt(p.recargo_monto)})
-                              </span>
+                                ✏️ Editar
+                              </button>
+                            ) : (
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                <button
+                                  onClick={() => guardarEdicion(p.id)}
+                                  disabled={guardando}
+                                  style={{
+                                    background: '#16a34a', color: 'white', border: 'none', borderRadius: 6,
+                                    padding: '4px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                    opacity: guardando ? 0.6 : 1,
+                                  }}
+                                >
+                                  {guardando ? '...' : '✓ Guardar'}
+                                </button>
+                                <button
+                                  onClick={cancelarEdicion}
+                                  style={{
+                                    background: '#f5f5f5', border: 'none', borderRadius: 6,
+                                    padding: '4px 10px', fontSize: 12, fontWeight: 600,
+                                    color: '#999', cursor: 'pointer',
+                                  }}
+                                >
+                                  Cancelar
+                                </button>
+                              </div>
                             )}
                           </div>
+
+                          {enEdicion ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                <div>
+                                  <div style={{ fontSize: 11, fontWeight: 700, color: '#888', marginBottom: 3 }}>Nombre</div>
+                                  <input style={inputStyle} value={editData.nombre || ''} onChange={e => setEditData({ ...editData, nombre: e.target.value })} />
+                                </div>
+                                <div>
+                                  <div style={{ fontSize: 11, fontWeight: 700, color: '#888', marginBottom: 3 }}>Apellido</div>
+                                  <input style={inputStyle} value={editData.apellido || ''} onChange={e => setEditData({ ...editData, apellido: e.target.value })} />
+                                </div>
+                              </div>
+                              <div>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: '#888', marginBottom: 3 }}>Teléfono</div>
+                                <input style={inputStyle} value={editData.telefono || ''} onChange={e => setEditData({ ...editData, telefono: e.target.value })} />
+                              </div>
+                              <div>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: '#888', marginBottom: 3 }}>Dirección</div>
+                                <input style={inputStyle} value={editData.direccion || ''} onChange={e => setEditData({ ...editData, direccion: e.target.value })} />
+                              </div>
+                              {p.tipo_envio === 'interior' && (
+                                <>
+                                  <div>
+                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#888', marginBottom: 3 }}>Cédula</div>
+                                    <input style={inputStyle} value={editData.cedula || ''} onChange={e => setEditData({ ...editData, cedula: e.target.value })} />
+                                  </div>
+                                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                    <div>
+                                      <div style={{ fontSize: 11, fontWeight: 700, color: '#888', marginBottom: 3 }}>Localidad</div>
+                                      <input style={inputStyle} value={editData.localidad || ''} onChange={e => setEditData({ ...editData, localidad: e.target.value })} />
+                                    </div>
+                                    <div>
+                                      <div style={{ fontSize: 11, fontWeight: 700, color: '#888', marginBottom: 3 }}>Departamento</div>
+                                      <input style={inputStyle} value={editData.departamento || ''} onChange={e => setEditData({ ...editData, departamento: e.target.value })} />
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#888', marginBottom: 3 }}>Agencia de carga</div>
+                                    <input style={inputStyle} value={editData.agencia_carga || ''} onChange={e => setEditData({ ...editData, agencia_carga: e.target.value })} />
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          ) : (
+                            <>
+                              <div style={{ fontSize: 14, marginBottom: 6 }}><strong>Nombre:</strong> {p.nombre} {p.apellido}</div>
+                              <div style={{ fontSize: 14, marginBottom: 6 }}><strong>Teléfono:</strong> <a href={`tel:${p.telefono}`} style={{ color: '#d62828' }}>{p.telefono}</a></div>
+                              <div style={{ fontSize: 14, marginBottom: 6 }}><strong>Dirección:</strong> {p.direccion}</div>
+                              <div style={{ fontSize: 14, marginBottom: 6 }}>
+                                <strong>Envío:</strong>{' '}
+                                <span style={{
+                                  display: 'inline-block', padding: '2px 10px', borderRadius: 50,
+                                  fontSize: 12, fontWeight: 700,
+                                  background: p.tipo_envio === 'interior' ? '#ede9fe' : '#dbeafe',
+                                  color: p.tipo_envio === 'interior' ? '#6d28d9' : '#1e40af',
+                                }}>
+                                  {p.tipo_envio === 'interior' ? '🚚 Interior' : '🏙️ Montevideo'}
+                                </span>
+                              </div>
+                              {p.tipo_envio === 'interior' && (
+                                <div style={{
+                                  background: '#fafaf8', border: '1px solid #ede8e2', borderRadius: 10,
+                                  padding: '10px 14px', marginBottom: 6, fontSize: 13,
+                                }}>
+                                  {p.cedula && <div style={{ marginBottom: 4 }}><strong>C.I.:</strong> {p.cedula}</div>}
+                                  {p.localidad && <div style={{ marginBottom: 4 }}><strong>Localidad:</strong> {p.localidad}</div>}
+                                  {p.departamento && <div style={{ marginBottom: 4 }}><strong>Departamento:</strong> {p.departamento}</div>}
+                                  {p.agencia_carga && <div><strong>Agencia:</strong> {p.agencia_carga}</div>}
+                                </div>
+                              )}
+                              {p.ubicacion_lat && p.ubicacion_lng && (
+                                <div style={{ fontSize: 14, marginBottom: 6 }}>
+                                  <a
+                                    href={`https://www.google.com/maps?q=${p.ubicacion_lat},${p.ubicacion_lng}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{
+                                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                                      background: '#f0fdf4', color: '#166534', padding: '6px 14px',
+                                      borderRadius: 50, fontSize: 13, fontWeight: 700,
+                                      textDecoration: 'none', border: '1px solid #bbf7d0',
+                                    }}
+                                  >
+                                    📍 Ver ubicación en Google Maps
+                                  </a>
+                                </div>
+                              )}
+                              {p.notas && <div style={{ fontSize: 14, marginBottom: 6 }}><strong>Notas del cliente:</strong> {p.notas}</div>}
+                              <div style={{ fontSize: 14, marginBottom: 6 }}>
+                                <strong>Medio de pago:</strong> {p.medio_pago || '—'}
+                                {p.recargo_porcentaje > 0 && (
+                                  <span style={{
+                                    marginLeft: 8, display: 'inline-block',
+                                    background: '#fef3c7', color: '#92400e',
+                                    padding: '2px 8px', borderRadius: 50,
+                                    fontSize: 12, fontWeight: 700,
+                                  }}>
+                                    +{p.recargo_porcentaje}% ({fmt(p.recargo_monto)})
+                                  </span>
+                                )}
+                              </div>
+                            </>
+                          )}
                         </div>
 
-                        {/* Cambiar estado */}
+                        {/* Columna derecha: estado + notas admin */}
                         <div>
                           <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, color: '#999', marginBottom: 10 }}>Cambiar estado</div>
-                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 20 }}>
                             {ESTADOS.map(e => {
                               const c = ESTADO_COLORES[e]
                               const activo = p.estado === e
@@ -293,6 +469,66 @@ export default function AdminPedidosPage() {
                               )
                             })}
                           </div>
+
+                          {/* Notas internas del admin */}
+                          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, color: '#999', marginBottom: 8 }}>Notas internas</div>
+                          {editandoNota === p.id ? (
+                            <div>
+                              <textarea
+                                value={notaTemp}
+                                onChange={e => setNotaTemp(e.target.value)}
+                                placeholder="Notas internas sobre este pedido... (no las ve el cliente)"
+                                rows={3}
+                                style={{
+                                  width: '100%', padding: '10px 12px', border: '1.5px solid #ddd',
+                                  borderRadius: 10, fontSize: 13, fontFamily: 'inherit',
+                                  outline: 'none', boxSizing: 'border-box', resize: 'vertical',
+                                  background: '#fffef5',
+                                }}
+                              />
+                              <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                                <button
+                                  onClick={() => guardarNota(p.id)}
+                                  disabled={guardando}
+                                  style={{
+                                    background: '#16a34a', color: 'white', border: 'none', borderRadius: 6,
+                                    padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                    opacity: guardando ? 0.6 : 1,
+                                  }}
+                                >
+                                  {guardando ? '...' : '✓ Guardar nota'}
+                                </button>
+                                <button
+                                  onClick={() => setEditandoNota(null)}
+                                  style={{
+                                    background: '#f5f5f5', border: 'none', borderRadius: 6,
+                                    padding: '6px 12px', fontSize: 12, color: '#999', cursor: 'pointer',
+                                  }}
+                                >
+                                  Cancelar
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div
+                              onClick={() => empezarEditarNota(p)}
+                              style={{
+                                padding: '12px 14px',
+                                background: p.notas_admin ? '#fffef5' : '#fafafa',
+                                border: `1.5px ${p.notas_admin ? 'solid #fde68a' : 'dashed #e0e0e0'}`,
+                                borderRadius: 10,
+                                fontSize: 13,
+                                color: p.notas_admin ? '#1a1a1a' : '#bbb',
+                                cursor: 'pointer',
+                                lineHeight: 1.5,
+                                whiteSpace: 'pre-wrap',
+                                minHeight: 44,
+                                transition: 'border-color 0.15s',
+                              }}
+                            >
+                              {p.notas_admin || '+ Agregar nota interna...'}
+                            </div>
+                          )}
                         </div>
                       </div>
 
