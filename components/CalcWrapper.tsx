@@ -33,7 +33,6 @@ export default function CalcWrapper({ src, title, icon }: Props) {
 
   // ── Cargar precios desde Supabase ──────────────────────────────────────
   const buildPricePayload = async (perfilId?: string) => {
-    // Cargar productos activos
     const { data: prods } = await supabase
       .from('precios_calc')
       .select('*')
@@ -42,7 +41,6 @@ export default function CalcWrapper({ src, title, icon }: Props) {
 
     if (!prods?.length) return null
 
-    // Cargar ajustes de perfil si hay perfilId
     let ppMap: Record<string, { precio_override: number | null; pct_ajuste: number }> = {}
     if (perfilId) {
       const { data: pp } = await supabase
@@ -52,14 +50,12 @@ export default function CalcWrapper({ src, title, icon }: Props) {
       pp?.forEach((p: any) => { ppMap[p.producto_id] = p })
     }
 
-    // Cargar perfiles para el selector de vendedor
     const { data: perfiles } = await supabase
       .from('perfiles_precio')
       .select('*')
       .eq('activo', true)
       .order('orden')
 
-    // Función para obtener precio efectivo
     const getPrice = (prod: any) => {
       const pp = ppMap[prod.id]
       if (!pp) return prod.precio
@@ -67,15 +63,12 @@ export default function CalcWrapper({ src, title, icon }: Props) {
       return Math.round(prod.precio * (1 + (pp.pct_ajuste || 0) / 100))
     }
 
-    // Construir tablas de medidas estándar
     const bycat = (cat: string) => prods.filter((p: any) => p.calculadora === cat)
-
     const toEst = (cat: string) =>
       bycat(cat)
         .filter((p: any) => p.ancho && p.alto)
         .map((p: any) => ({ a: p.ancho, h: p.alto, p: getPrice(p), n: p.descripcion || '' }))
 
-    // Precios de reja, persiana, mosquitero
     const reja12 = bycat('reja').find((p: any) => p.clave?.includes('12'))
     const reja16 = bycat('reja').find((p: any) => p.clave?.includes('16'))
     const persS = bycat('persiana')
@@ -96,7 +89,6 @@ export default function CalcWrapper({ src, title, icon }: Props) {
       p_imm: persS.find((p: any) => p.clave?.toLowerCase().includes('madera')) ? getPrice(persS.find((p: any) => p.clave?.toLowerCase().includes('madera'))) : 8900,
     }
 
-    // Agregar perfiles para selector de vendedor
     if (perfiles?.length) {
       payload.perfiles = perfiles.map((p: any) => ({
         nombre: p.nombre,
@@ -108,7 +100,6 @@ export default function CalcWrapper({ src, title, icon }: Props) {
     return payload
   }
 
-  // ── Enviar precios al iframe ──────────────────────────────────────────
   const sendPrices = async (iframe: HTMLIFrameElement, perfilId?: string) => {
     const payload = await buildPricePayload(perfilId)
     if (!payload) return
@@ -134,11 +125,9 @@ export default function CalcWrapper({ src, title, icon }: Props) {
 
   const onIframeLoad = (iframe: HTMLIFrameElement) => {
     injectCSS(iframe)
-    // Esperar un momento para que VP esté inicializado, luego enviar precios
     setTimeout(() => sendPrices(iframe), 500)
   }
 
-  // Cuando cambia el vendedor, reenviar precios
   useEffect(() => {
     if (iframeRef.current && pricesLoaded) {
       sendPrices(iframeRef.current)
@@ -148,92 +137,219 @@ export default function CalcWrapper({ src, title, icon }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0f0f0f', fontFamily: "'DM Sans', sans-serif" }}>
 
-      {/* Top bar */}
-      <header style={{
-        height: 52, flexShrink: 0, background: '#111', borderBottom: '1px solid #1e1e1e',
-        display: 'flex', alignItems: 'center', padding: '0 12px', gap: 10, zIndex: 50,
-      }}>
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', flexShrink: 0 }}>
-          <div style={{
-            width: 32, height: 32, borderRadius: '50%',
-            background: 'linear-gradient(135deg,#D62828,#A01E1E)', border: '2px solid #F7B731',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: "'Bebas Neue',sans-serif", fontSize: 11, color: '#fff', letterSpacing: 2,
-          }}>RG</div>
+      {/* ── Top bar (primera fila) ── */}
+      <header className="calc-header">
+        <Link href="/" className="calc-logo">
+          <div className="calc-logo-circle">RG</div>
         </Link>
 
-        <div style={{ width: 1, height: 24, background: '#2a2a2a', flexShrink: 0 }} />
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#F7B731', whiteSpace: 'nowrap' }}>{icon} {title}</span>
+        <div className="calc-divider" />
+        <span className="calc-title">{icon} {title}</span>
 
-        {/* Indicador de precios cargados */}
         {pricesLoaded && (
-          <span style={{ fontSize: 10, color: '#6ec8a0', background: 'rgba(110,200,160,0.1)', border: '1px solid rgba(110,200,160,0.2)', borderRadius: 10, padding: '2px 8px' }}>
-            ✓ Precios actualizados
-          </span>
+          <span className="calc-prices-badge">✓ Precios</span>
         )}
 
-        <nav style={{ display: 'flex', gap: 2, marginLeft: 8, flex: 1, overflowX: 'auto' }}>
-          {CALCS.map((c) => {
-            const active = pathname === c.href
-            const isVendorSection = c.href === '/presupuesto'
-            return (
-              <Link key={c.href} href={c.href} style={{
-                display: 'flex', alignItems: 'center', gap: 4,
-                padding: '4px 10px', borderRadius: 6, textDecoration: 'none',
-                fontSize: 12, fontWeight: active ? 700 : 400,
-                color: active ? '#111' : '#666',
-                background: active ? '#F7B731' : 'transparent',
-                whiteSpace: 'nowrap', flexShrink: 0, transition: 'all .15s',
-                marginLeft: isVendorSection ? 8 : 0,
-                borderLeft: isVendorSection ? '1px solid #2a2a2a' : 'none',
-              }}>
-                <span>{c.icon}</span>
-                <span>{c.label}</span>
-              </Link>
-            )
-          })}
-        </nav>
+        <div style={{ flex: 1 }} />
 
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
+        <div className="calc-user-area">
           {!vendedor ? (
-            <button onClick={() => setLoginModal(true)} style={{
-              display: 'flex', alignItems: 'center', gap: 5,
-              background: 'rgba(247,183,49,0.12)', border: '1px solid rgba(247,183,49,0.3)',
-              color: '#F7B731', borderRadius: 6, padding: '5px 12px',
-              fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
-            }}>🔑 Vendedor</button>
+            <button onClick={() => setLoginModal(true)} className="calc-btn-vendedor">🔑 Vendedor</button>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 11, color: '#6ec8a0', fontWeight: 600 }}>✓ {vendedor.nombre.split(' ')[0]}</span>
-              <button onClick={logout} style={{
-                background: 'rgba(214,40,40,0.15)', border: '1px solid rgba(214,40,40,0.3)',
-                color: '#ff8888', borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer',
-              }}>Salir</button>
+              <span className="calc-vendedor-name">✓ {vendedor.nombre.split(' ')[0]}</span>
+              <button onClick={logout} className="calc-btn-logout">Salir</button>
             </div>
           )}
-          <a href="https://wa.me/59897699854" target="_blank" rel="noopener noreferrer" style={{
-            width: 30, height: 30, borderRadius: '50%', background: '#25D366',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-          }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="white">
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347"/>
-            </svg>
-          </a>
         </div>
       </header>
 
-      {/* iframe */}
+      {/* ── Tabs de navegación (segunda fila) ── */}
+      <nav className="calc-tabs">
+        {CALCS.map((c) => {
+          const active = pathname === c.href
+          return (
+            <Link key={c.href} href={c.href} className={`calc-tab ${active ? 'active' : ''}`}>
+              <span>{c.icon}</span>
+              <span>{c.label}</span>
+            </Link>
+          )
+        })}
+      </nav>
+
+      {/* ── iframe ── */}
       <iframe
         ref={iframeRef}
         key={iframeSrc}
         src={iframeSrc}
         title={title}
-        style={{ flex: 1, border: 'none', width: '100%', display: 'block' }}
+        className="calc-iframe"
         allow="clipboard-write"
         onLoad={(e) => onIframeLoad(e.target as HTMLIFrameElement)}
       />
 
       {loginModal && <VendedorLoginModal onClose={() => setLoginModal(false)} />}
+
+      <style jsx>{`
+        .calc-header {
+          height: 48px;
+          flex-shrink: 0;
+          background: #111;
+          border-bottom: 1px solid #1e1e1e;
+          display: flex;
+          align-items: center;
+          padding: 0 10px;
+          gap: 8px;
+          z-index: 50;
+        }
+        .calc-logo {
+          text-decoration: none;
+          flex-shrink: 0;
+        }
+        .calc-logo-circle {
+          width: 30px;
+          height: 30px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #D62828, #A01E1E);
+          border: 2px solid #F7B731;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: 'Bebas Neue', sans-serif;
+          font-size: 10px;
+          color: #fff;
+          letter-spacing: 2px;
+        }
+        .calc-divider {
+          width: 1px;
+          height: 20px;
+          background: #2a2a2a;
+          flex-shrink: 0;
+        }
+        .calc-title {
+          font-size: 13px;
+          font-weight: 700;
+          color: #F7B731;
+          white-space: nowrap;
+        }
+        .calc-prices-badge {
+          font-size: 10px;
+          color: #6ec8a0;
+          background: rgba(110, 200, 160, 0.1);
+          border: 1px solid rgba(110, 200, 160, 0.2);
+          border-radius: 10px;
+          padding: 2px 8px;
+          white-space: nowrap;
+        }
+
+        .calc-user-area {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-shrink: 0;
+        }
+        .calc-btn-vendedor {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          background: rgba(247, 183, 49, 0.12);
+          border: 1px solid rgba(247, 183, 49, 0.3);
+          color: #F7B731;
+          border-radius: 6px;
+          padding: 5px 10px;
+          font-size: 11px;
+          font-weight: 700;
+          cursor: pointer;
+          white-space: nowrap;
+          font-family: inherit;
+        }
+        .calc-vendedor-name {
+          font-size: 11px;
+          color: #6ec8a0;
+          font-weight: 600;
+        }
+        .calc-btn-logout {
+          background: rgba(214, 40, 40, 0.15);
+          border: 1px solid rgba(214, 40, 40, 0.3);
+          color: #ff8888;
+          border-radius: 6px;
+          padding: 4px 8px;
+          font-size: 11px;
+          cursor: pointer;
+          font-family: inherit;
+        }
+
+        /* ── Tabs en fila separada ── */
+        .calc-tabs {
+          display: flex;
+          gap: 2px;
+          padding: 6px 10px;
+          background: #0f0f0f;
+          border-bottom: 1px solid #1e1e1e;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          flex-shrink: 0;
+          scrollbar-width: none;
+        }
+        .calc-tabs::-webkit-scrollbar {
+          display: none;
+        }
+        .calc-tab {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          padding: 7px 14px;
+          border-radius: 8px;
+          text-decoration: none;
+          font-size: 13px;
+          font-weight: 500;
+          color: #777;
+          background: transparent;
+          white-space: nowrap;
+          flex-shrink: 0;
+          transition: all 0.15s;
+        }
+        .calc-tab:hover {
+          color: #aaa;
+          background: rgba(255, 255, 255, 0.05);
+        }
+        .calc-tab.active {
+          color: #111;
+          background: #F7B731;
+          font-weight: 700;
+        }
+
+        /* ── iframe ── */
+        .calc-iframe {
+          flex: 1;
+          border: none;
+          width: 100%;
+          display: block;
+        }
+
+        /* ── Mobile adjustments ── */
+        @media (max-width: 640px) {
+          .calc-header {
+            height: 44px;
+            padding: 0 8px;
+            gap: 6px;
+          }
+          .calc-title {
+            font-size: 12px;
+          }
+          .calc-prices-badge {
+            display: none;
+          }
+          .calc-tabs {
+            padding: 4px 8px;
+            gap: 4px;
+          }
+          .calc-tab {
+            padding: 6px 12px;
+            font-size: 12px;
+          }
+        }
+      `}</style>
     </div>
   )
 }
