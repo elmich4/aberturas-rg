@@ -20,6 +20,7 @@ const MENU_BASE = [
   { href: '/admin/tienda',       icon: '🛍️', label: 'Tienda'       },
   { href: '/admin/presupuestos', icon: '📋', label: 'Presupuestos', badgeKey: 'presupuestosPendientes' },
   { href: '/admin/pedidos',      icon: '🛒', label: 'Pedidos',      badgeKey: 'pedidosPendientes' },
+  { href: '/admin/produccion', label: '🏭 Producción' },
   { href: '/admin/categorias',   icon: '🗂️', label: 'Categorías'   },
   { href: '/admin/anuncios',     icon: '📢', label: 'Anuncios'     },
 ]
