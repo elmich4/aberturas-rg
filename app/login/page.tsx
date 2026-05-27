@@ -17,8 +17,8 @@ export default function LoginPage() {
     setError(''); setLoading(true)
     const res = await login(user.trim(), pass)
     setLoading(false)
-    if (res.error) { setError(res.error); return }
-    router.push('/')
+	if (res.error) { setError(res.error); return }
+	window.location.href = '/admin'
   }
 
   return (
