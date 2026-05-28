@@ -115,7 +115,7 @@ export default function ProductoDetalleClient({
           </button>
 
           <div className="detalle-grid">
-            {/* COL IMAGEN */}
+            {/* COL IMAGEN — más compacta */}
             <div className="col-image">
               <div className="main-img-card">
                 <img
@@ -157,13 +157,57 @@ export default function ProductoDetalleClient({
                 <span className="price-unit">/ {producto.unidad}</span>
               </div>
 
-              <div className="content-section">
-                <h3>Descripción</h3>
-                <p>
-                  {producto.descripcion_larga ||
-                    producto.descripcion ||
-                    'Sin descripción disponible para este producto.'}
-                </p>
+              {/* BOTÓN COMPRAR — siempre visible, antes de la descripción */}
+              <div className="action-area">
+                <div className="action-row">
+                  <div className="cantidad-selector">
+                    <div className="ctrl">
+                      <button
+                        onClick={() => setCantidad(c => Math.max(1, c - 1))}
+                        aria-label="Restar"
+                      >
+                        −
+                      </button>
+                      <input
+                        type="number"
+                        min={1}
+                        value={cantidad}
+                        onChange={e =>
+                          setCantidad(Math.max(1, Number(e.target.value) || 1))
+                        }
+                      />
+                      <button
+                        onClick={() => setCantidad(c => c + 1)}
+                        aria-label="Sumar"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    className="btn-cart"
+                    onClick={handleAddToCart}
+                    disabled={requiereSeleccion}
+                  >
+                    {requiereSeleccion
+                      ? 'Elegí una opción primero'
+                      : `Agregar al carrito — ${fmt(precioActual * cantidad)}`}
+                  </button>
+                </div>
+
+                {feedback && <div className="feedback">{feedback}</div>}
+
+                <a
+                  href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(
+                    mensajeWA
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-whatsapp"
+                >
+                  Consultar por WhatsApp
+                </a>
               </div>
 
               {tieneVariantes && (
@@ -192,6 +236,15 @@ export default function ProductoDetalleClient({
                 </div>
               )}
 
+              <div className="content-section">
+                <h3>Descripción</h3>
+                <p>
+                  {producto.descripcion_larga ||
+                    producto.descripcion ||
+                    'Sin descripción disponible para este producto.'}
+                </p>
+              </div>
+
               {producto.especificaciones &&
                 Object.keys(producto.especificaciones).length > 0 && (
                   <div className="content-section">
@@ -207,57 +260,6 @@ export default function ProductoDetalleClient({
                     </div>
                   </div>
                 )}
-
-              <div className="action-area">
-                <div className="cantidad-selector">
-                  <label>Cantidad</label>
-                  <div className="ctrl">
-                    <button
-                      onClick={() => setCantidad(c => Math.max(1, c - 1))}
-                      aria-label="Restar"
-                    >
-                      −
-                    </button>
-                    <input
-                      type="number"
-                      min={1}
-                      value={cantidad}
-                      onChange={e =>
-                        setCantidad(Math.max(1, Number(e.target.value) || 1))
-                      }
-                    />
-                    <button
-                      onClick={() => setCantidad(c => c + 1)}
-                      aria-label="Sumar"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  className="btn-cart"
-                  onClick={handleAddToCart}
-                  disabled={requiereSeleccion}
-                >
-                  {requiereSeleccion
-                    ? 'Elegí una opción primero'
-                    : `Agregar al carrito — ${fmt(precioActual * cantidad)}`}
-                </button>
-
-                {feedback && <div className="feedback">{feedback}</div>}
-
-                <a
-                  href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(
-                    mensajeWA
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-whatsapp"
-                >
-                  Consultar por WhatsApp
-                </a>
-              </div>
             </div>
           </div>
         </div>
@@ -267,12 +269,12 @@ export default function ProductoDetalleClient({
 
         <style jsx>{`
           .detalle-wrapper {
-            padding: 120px 20px 80px;
+            padding: 100px 20px 60px;
             background: #fdfcf9;
             min-height: 100vh;
           }
           .container {
-            max-width: 1200px;
+            max-width: 1100px;
             margin: 0 auto;
           }
 
@@ -282,8 +284,9 @@ export default function ProductoDetalleClient({
             color: #888;
             font-weight: 600;
             cursor: pointer;
-            margin-bottom: 30px;
+            margin-bottom: 16px;
             transition: 0.2s;
+            font-size: 0.9rem;
           }
           .btn-volver:hover {
             color: #d62828;
@@ -291,46 +294,49 @@ export default function ProductoDetalleClient({
 
           .detalle-grid {
             display: grid;
-            grid-template-columns: 1.2fr 1fr;
-            gap: 60px;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 40px;
+            align-items: start;
           }
 
+          /* ── Imagen: compacta, sin zoom excesivo ── */
           .col-image {
             position: sticky;
-            top: 120px;
+            top: 100px;
             align-self: start;
           }
           .main-img-card {
             background: white;
-            border-radius: 30px;
-            padding: 16px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.05);
+            border-radius: 16px;
+            padding: 10px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
           }
           .main-img-card img {
             width: 100%;
             display: block;
-            object-fit: cover;
-            aspect-ratio: 4 / 3;
-            border-radius: 20px;
+            object-fit: contain;
+            aspect-ratio: 1 / 1;
+            border-radius: 12px;
+            background: #fff;
           }
 
           .thumbs {
             display: flex;
-            gap: 10px;
-            margin-top: 14px;
+            gap: 8px;
+            margin-top: 10px;
             overflow-x: auto;
-            padding: 4px 2px;
+            padding: 2px;
           }
           .thumb {
             flex: 0 0 auto;
-            width: 76px;
-            height: 76px;
+            width: 56px;
+            height: 56px;
             border: 2px solid #eee;
-            border-radius: 14px;
+            border-radius: 10px;
             overflow: hidden;
             background: white;
             cursor: pointer;
-            padding: 4px;
+            padding: 3px;
             transition: 0.2s;
           }
           .thumb img {
@@ -338,7 +344,7 @@ export default function ProductoDetalleClient({
             height: 100%;
             object-fit: cover;
             display: block;
-            border-radius: 8px;
+            border-radius: 6px;
           }
           .thumb.active {
             border-color: #d62828;
@@ -348,149 +354,70 @@ export default function ProductoDetalleClient({
             border-color: #ccc;
           }
 
+          /* ── Info: tipografía consistente ── */
           .subcat-badge {
             display: inline-block;
             background: #f0f0f0;
             color: #d62828;
-            padding: 6px 16px;
+            padding: 4px 12px;
             border-radius: 50px;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 800;
             text-transform: uppercase;
-            margin-bottom: 15px;
+            margin-bottom: 8px;
           }
 
           h1 {
-            font-family: 'Playfair Display', serif;
-            font-size: 3.2rem;
+            font-family: 'Barlow Condensed', 'Bebas Neue', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 700;
             color: #1a1a1a;
-            margin: 0 0 20px;
-            line-height: 1.1;
+            margin: 0 0 10px;
+            line-height: 1.15;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
           }
 
           .price-box {
             display: flex;
             align-items: baseline;
-            gap: 10px;
-            margin-bottom: 40px;
+            gap: 8px;
+            margin-bottom: 16px;
             flex-wrap: wrap;
           }
           .price-label {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             text-transform: uppercase;
             letter-spacing: 1.5px;
             font-weight: 700;
             color: #888;
           }
           .price-amount {
-            font-size: 2.8rem;
+            font-size: 2rem;
             font-weight: 900;
             color: #d62828;
           }
           .price-unit {
             color: #999;
             font-weight: 600;
-            font-size: 1.1rem;
+            font-size: 0.95rem;
           }
 
-          .content-section {
-            margin-bottom: 40px;
-          }
-          .content-section h3 {
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            color: #333;
+          /* ── Acción: siempre visible arriba ── */
+          .action-area {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
             border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
+          }
+          .action-row {
             display: flex;
             align-items: center;
-            gap: 10px;
-          }
-          .required-tag {
-            background: #fef2f2;
-            color: #b91c1c;
-            font-size: 0.65rem;
-            padding: 3px 8px;
-            border-radius: 50px;
-            font-weight: 800;
-            letter-spacing: 0.5px;
-          }
-          .content-section p {
-            line-height: 1.8;
-            color: #555;
-            font-size: 1.05rem;
-            white-space: pre-wrap;
-          }
-
-          .variantes-pills {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-          }
-          .variante-pill {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 2px;
-            background: white;
-            border: 2px solid #eee;
-            border-radius: 14px;
-            padding: 10px 16px;
-            cursor: pointer;
-            font-family: inherit;
-            transition: 0.2s;
-            min-width: 110px;
-          }
-          .variante-pill:hover {
-            border-color: #ccc;
-          }
-          .variante-pill.active {
-            border-color: #d62828;
-            background: #fff5f5;
-            box-shadow: 0 4px 12px rgba(214, 40, 40, 0.12);
-          }
-          .vp-nombre {
-            font-weight: 700;
-            color: #1a1a1a;
-            font-size: 0.92rem;
-          }
-          .vp-precio {
-            font-size: 0.78rem;
-            color: #d62828;
-            font-weight: 700;
-          }
-
-          .specs-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-          }
-          .spec-item {
-            font-size: 0.9rem;
-            color: #666;
-            padding: 10px;
-            background: #fff;
-            border-radius: 10px;
-            border: 1px solid #f0f0f0;
-          }
-
-          .action-area {
-            margin-top: 30px;
+            gap: 12px;
+            margin-bottom: 10px;
           }
 
           .cantidad-selector {
-            margin-bottom: 16px;
-          }
-          .cantidad-selector label {
-            display: block;
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: #555;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            flex-shrink: 0;
           }
           .ctrl {
             display: inline-flex;
@@ -501,12 +428,12 @@ export default function ProductoDetalleClient({
             background: white;
           }
           .ctrl button {
-            width: 44px;
-            height: 44px;
+            width: 38px;
+            height: 42px;
             border: none;
             background: white;
             cursor: pointer;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: 700;
             color: #333;
           }
@@ -514,11 +441,11 @@ export default function ProductoDetalleClient({
             background: #f5f5f5;
           }
           .ctrl input {
-            width: 60px;
+            width: 44px;
             text-align: center;
             border: none;
             font-weight: 700;
-            font-size: 1rem;
+            font-size: 0.95rem;
             -moz-appearance: textfield;
           }
           .ctrl input::-webkit-outer-spin-button,
@@ -528,23 +455,22 @@ export default function ProductoDetalleClient({
           }
 
           .btn-cart {
-            display: block;
-            width: 100%;
+            flex: 1;
             background: #d62828;
             color: white;
-            padding: 20px;
+            padding: 14px 20px;
             border: none;
             border-radius: 50px;
             font-weight: 800;
-            font-size: 1.05rem;
+            font-size: 0.95rem;
             cursor: pointer;
-            box-shadow: 0 10px 25px rgba(214, 40, 40, 0.25);
+            box-shadow: 0 6px 20px rgba(214, 40, 40, 0.25);
             transition: 0.2s;
-            margin-bottom: 12px;
+            white-space: nowrap;
           }
           .btn-cart:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 14px 32px rgba(214, 40, 40, 0.35);
+            transform: translateY(-1px);
+            box-shadow: 0 10px 28px rgba(214, 40, 40, 0.35);
           }
           .btn-cart:disabled {
             background: #d4a3a3;
@@ -555,11 +481,11 @@ export default function ProductoDetalleClient({
           .feedback {
             background: #ecfdf5;
             color: #047857;
-            padding: 10px 16px;
-            border-radius: 10px;
-            font-size: 0.9rem;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
             font-weight: 600;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             text-align: center;
             animation: fadeIn 0.3s ease;
           }
@@ -580,19 +506,105 @@ export default function ProductoDetalleClient({
             text-align: center;
             background: white;
             color: #25d366;
-            padding: 16px;
+            padding: 12px;
             border-radius: 50px;
             text-decoration: none;
             font-weight: 800;
-            font-size: 1rem;
+            font-size: 0.9rem;
             border: 2px solid #25d366;
             transition: 0.2s;
+            box-sizing: border-box;
           }
           .btn-whatsapp:hover {
             background: #25d366;
             color: white;
           }
 
+          /* ── Secciones de contenido: más compactas ── */
+          .content-section {
+            margin-bottom: 20px;
+          }
+          .content-section h3 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+          }
+          .required-tag {
+            background: #fef2f2;
+            color: #b91c1c;
+            font-size: 0.65rem;
+            padding: 3px 8px;
+            border-radius: 50px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+          }
+          .content-section p {
+            line-height: 1.6;
+            color: #555;
+            font-size: 0.92rem;
+            white-space: pre-wrap;
+          }
+
+          .variantes-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+          }
+          .variante-pill {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+            background: white;
+            border: 2px solid #eee;
+            border-radius: 12px;
+            padding: 8px 14px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: 0.2s;
+            min-width: 100px;
+          }
+          .variante-pill:hover {
+            border-color: #ccc;
+          }
+          .variante-pill.active {
+            border-color: #d62828;
+            background: #fff5f5;
+            box-shadow: 0 4px 12px rgba(214, 40, 40, 0.12);
+          }
+          .vp-nombre {
+            font-weight: 700;
+            color: #1a1a1a;
+            font-size: 0.85rem;
+          }
+          .vp-precio {
+            font-size: 0.75rem;
+            color: #d62828;
+            font-weight: 700;
+          }
+
+          .specs-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+          }
+          .spec-item {
+            font-size: 0.85rem;
+            color: #666;
+            padding: 8px 10px;
+            background: #fff;
+            border-radius: 8px;
+            border: 1px solid #f0f0f0;
+          }
+
+          /* ── Responsive ── */
           @media (max-width: 950px) {
             .detalle-grid {
               grid-template-columns: 1fr;
@@ -601,10 +613,16 @@ export default function ProductoDetalleClient({
               position: static;
             }
             h1 {
-              font-size: 2.5rem;
+              font-size: 1.5rem;
             }
             .detalle-wrapper {
-              padding-top: 100px;
+              padding-top: 90px;
+            }
+            .action-row {
+              flex-direction: column;
+            }
+            .btn-cart {
+              width: 100%;
             }
           }
         `}</style>
