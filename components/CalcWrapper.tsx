@@ -92,7 +92,7 @@ export default function CalcWrapper({ src, title, icon }: Props) {
     if (perfiles?.length) {
       payload.perfiles = perfiles.map((p: any) => ({
         nombre: p.nombre,
-        telefono: vendedor?.telefono || '097 699 854',
+        telefono: p.telefono || '097 699 854',
         perfil_id: p.id,
       }))
     }
