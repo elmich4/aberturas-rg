@@ -8,7 +8,7 @@ type Producto = {
   criterio: string; precio: number; ancho: number | null; alto: number | null
   unidad: string; activo: boolean; orden: number
 }
-type Perfil = { id: string; nombre: string; descripcion: string; activo: boolean; orden: number }
+type Perfil = { id: string; nombre: string; descripcion: string; telefono: string; activo: boolean; orden: number }
 type PrecioPerfil = { id: string; perfil_id: string; producto_id: string; precio_override: number | null; pct_ajuste: number }
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -33,6 +33,8 @@ const S = {
   tag: (color: string) => ({ background: color + '22', color: color, border: `1px solid ${color}44`, borderRadius: 20, padding: '2px 8px', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' as const }),
 }
 
+const labelStyle = { display: 'block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: 1, color: '#666', marginBottom: 5 }
+
 export default function AdminPrecios() {
   const [tab, setTab] = useState<'productos' | 'perfiles'>('productos')
   const [productos, setProductos] = useState<Producto[]>([])
@@ -49,7 +51,7 @@ export default function AdminPrecios() {
 
   // Modal nuevo perfil
   const [modalPerfil, setModalPerfil] = useState(false)
-  const [newPerfil, setNewPerfil] = useState({ nombre: '', descripcion: '' })
+  const [newPerfil, setNewPerfil] = useState({ nombre: '', descripcion: '', telefono: '097 699 854' })
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -105,7 +107,7 @@ export default function AdminPrecios() {
     setSaving(null)
   }
 
-  // ── Toggle activo ──
+  // ── Toggle activo (producto) ──
   const toggleActivo = async (prod: Producto) => {
     await supabase.from('precios_calc').update({ activo: !prod.activo }).eq('id', prod.id)
     setProductos(prev => prev.map(p => p.id === prod.id ? { ...p, activo: !p.activo } : p))
@@ -133,9 +135,49 @@ export default function AdminPrecios() {
   // ── Agregar perfil ──
   const addPerfil = async () => {
     if (!newPerfil.nombre.trim()) return
-    await supabase.from('perfiles_precio').insert({ nombre: newPerfil.nombre.trim(), descripcion: newPerfil.descripcion, orden: perfiles.length })
+    await supabase.from('perfiles_precio').insert({
+      nombre: newPerfil.nombre.trim(),
+      descripcion: newPerfil.descripcion,
+      telefono: newPerfil.telefono.trim() || '097 699 854',
+      orden: perfiles.length,
+    })
     setModalPerfil(false)
-    setNewPerfil({ nombre: '', descripcion: '' })
+    setNewPerfil({ nombre: '', descripcion: '', telefono: '097 699 854' })
+    await load()
+  }
+
+  // ── Editar campo de un perfil (nombre / descripcion / telefono) ──
+  const updatePerfilField = async (id: string, patch: Partial<Perfil>) => {
+    setSaving('perfil-' + id)
+    await supabase.from('perfiles_precio').update(patch).eq('id', id)
+    setPerfiles(prev => prev.map(p => p.id === id ? { ...p, ...patch } : p))
+    setSaving(null)
+  }
+
+  // ── Toggle activo (perfil) ──
+  const togglePerfilActivo = async (perfil: Perfil) => {
+    await supabase.from('perfiles_precio').update({ activo: !perfil.activo }).eq('id', perfil.id)
+    setPerfiles(prev => prev.map(p => p.id === perfil.id ? { ...p, activo: !p.activo } : p))
+  }
+
+  // ── Reordenar perfil (↑ / ↓) ──
+  const moverPerfil = async (id: string, dir: -1 | 1) => {
+    const sorted = [...perfiles].sort((a, b) => a.orden - b.orden)
+    const i = sorted.findIndex(p => p.id === id)
+    const j = i + dir
+    if (j < 0 || j >= sorted.length) return
+    const a = sorted[i], b = sorted[j]
+    await supabase.from('perfiles_precio').update({ orden: b.orden }).eq('id', a.id)
+    await supabase.from('perfiles_precio').update({ orden: a.orden }).eq('id', b.id)
+    await load()
+  }
+
+  // ── Eliminar perfil ──
+  const deletePerfil = async (id: string) => {
+    if (!confirm('¿Eliminar este perfil? Se borrarán también sus precios personalizados.')) return
+    await supabase.from('precios_perfil').delete().eq('perfil_id', id)
+    await supabase.from('perfiles_precio').delete().eq('id', id)
+    if (perfilActivo === id) setPerfilActivo('')
     await load()
   }
 
@@ -149,6 +191,7 @@ export default function AdminPrecios() {
 
   const prodsCat = productos.filter(p => p.calculadora === catActiva)
   const perfilObj = perfiles.find(p => p.id === perfilActivo)
+  const perfilesSorted = [...perfiles].sort((a, b) => a.orden - b.orden)
 
   if (loading) return <div style={{ color: '#888', padding: 40 }}>Cargando precios...</div>
 
@@ -217,7 +260,7 @@ export default function AdminPrecios() {
             {perfiles.length > 0 && (
               <div style={{ padding: '10px 16px', borderBottom: '1px solid #222', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 11, color: '#666', textTransform: 'uppercase', letterSpacing: 1 }}>Ver precios para:</span>
-                {perfiles.map(p => (
+                {perfilesSorted.map(p => (
                   <button key={p.id} onClick={() => setPerfilActivo(p.id)} style={{
                     background: perfilActivo === p.id ? '#D62828' : 'transparent',
                     color: perfilActivo === p.id ? '#fff' : '#666',
@@ -315,21 +358,64 @@ export default function AdminPrecios() {
       {/* ── TAB PERFILES ── */}
       {tab === 'perfiles' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {perfiles.map(perfil => (
-            <div key={perfil.id} style={S.panel}>
+          {perfilesSorted.map((perfil, idx) => (
+            <div key={perfil.id} style={{ ...S.panel, opacity: perfil.activo ? 1 : 0.55 }}>
               <div style={S.sectionHead}>
-                <div>
-                  <span style={S.sectionTitle}>{perfil.nombre}</span>
-                  {perfil.descripcion && <span style={{ fontSize: 12, color: '#666', marginLeft: 10 }}>{perfil.descripcion}</span>}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={S.sectionTitle}>{perfil.nombre || '(sin nombre)'}</span>
+                  {!perfil.activo && <span style={S.tag('#888')}>Inactivo</span>}
                 </div>
-                <span style={S.tag('#6ec8a0')}>{preciosPerfil.filter(pp => pp.perfil_id === perfil.id).length} overrides</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={S.tag('#6ec8a0')}>{preciosPerfil.filter(pp => pp.perfil_id === perfil.id).length} overrides</span>
+                  {/* Reordenar */}
+                  <button onClick={() => moverPerfil(perfil.id, -1)} disabled={idx === 0}
+                    style={{ ...S.btn('#2e2e2e', idx === 0 ? '#444' : '#aaa'), padding: '4px 8px', fontSize: 12, cursor: idx === 0 ? 'default' : 'pointer' }}>↑</button>
+                  <button onClick={() => moverPerfil(perfil.id, 1)} disabled={idx === perfilesSorted.length - 1}
+                    style={{ ...S.btn('#2e2e2e', idx === perfilesSorted.length - 1 ? '#444' : '#aaa'), padding: '4px 8px', fontSize: 12, cursor: idx === perfilesSorted.length - 1 ? 'default' : 'pointer' }}>↓</button>
+                </div>
               </div>
-              <div style={{ padding: '12px 18px' }}>
-                <p style={{ fontSize: 12, color: '#555', margin: 0 }}>
-                  Los precios con <span style={{ color: '#F7B731' }}>precio override</span> usan ese valor exacto.
-                  Los que tienen <span style={{ color: '#059669' }}>% ajuste</span> se calculan sobre el precio base.
-                  Los que no tienen ninguno usan el precio base directamente.
-                </p>
+
+              <div style={{ padding: '16px 18px' }}>
+                {/* Campos editables */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+                  <div>
+                    <label style={labelStyle}>Nombre</label>
+                    <input type="text" defaultValue={perfil.nombre} style={S.inp}
+                      onBlur={e => { const v = e.target.value.trim(); if (v && v !== perfil.nombre) updatePerfilField(perfil.id, { nombre: v }) }}
+                    />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Teléfono (aparece en el presupuesto)</label>
+                    <input type="text" defaultValue={perfil.telefono || ''} placeholder="097 699 854" style={S.inp}
+                      onBlur={e => { const v = e.target.value.trim(); if (v !== (perfil.telefono || '')) updatePerfilField(perfil.id, { telefono: v }) }}
+                    />
+                  </div>
+                </div>
+                <div style={{ marginBottom: 14 }}>
+                  <label style={labelStyle}>Descripción (opcional)</label>
+                  <input type="text" defaultValue={perfil.descripcion || ''} placeholder="ej: Clientes fuera de Montevideo" style={S.inp}
+                    onBlur={e => { const v = e.target.value; if (v !== (perfil.descripcion || '')) updatePerfilField(perfil.id, { descripcion: v }) }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                  <p style={{ fontSize: 11, color: '#555', margin: 0, maxWidth: 560 }}>
+                    Los precios con <span style={{ color: '#F7B731' }}>override</span> usan ese valor exacto.
+                    Los de <span style={{ color: '#059669' }}>% ajuste</span> se calculan sobre el precio base.
+                    Los demás usan el precio base. (Se editan en la tab Productos.)
+                  </p>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={() => togglePerfilActivo(perfil)}
+                      style={{ ...S.btn(perfil.activo ? '#2e2e2e' : '#1a3a2a', perfil.activo ? '#888' : '#6ec8a0'), padding: '5px 10px', fontSize: 11 }}>
+                      {perfil.activo ? 'Desactivar' : 'Activar'}
+                    </button>
+                    <button onClick={() => deletePerfil(perfil.id)}
+                      style={{ ...S.btn('transparent', '#D62828'), border: '1px solid rgba(214,40,40,.3)', padding: '5px 10px', fontSize: 11 }}>
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+                {saving === 'perfil-' + perfil.id && <div style={{ fontSize: 11, color: '#6ec8a0', marginTop: 8 }}>Guardando…</div>}
               </div>
             </div>
           ))}
@@ -361,7 +447,7 @@ export default function AdminPrecios() {
                 { label: 'Unidad', field: 'unidad', type: 'select', options: [{ value: 'u', label: 'Unidad (u)' }, { value: 'm²', label: 'Metro cuadrado (m²)' }, { value: 'ml', label: 'Metro lineal (ml)' }] },
               ].map(({ label, field, type, placeholder, options }: any) => (
                 <div key={field}>
-                  <label style={{ display: 'block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#666', marginBottom: 5 }}>{label}</label>
+                  <label style={labelStyle}>{label}</label>
                   {type === 'select'
                     ? <select value={(newProd as any)[field]} onChange={e => setNewProd(p => ({ ...p, [field]: e.target.value }))} style={{ ...S.inp }}>
                         {options.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -399,11 +485,15 @@ export default function AdminPrecios() {
             </div>
             <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#666', marginBottom: 5 }}>Nombre del perfil</label>
+                <label style={labelStyle}>Nombre del perfil</label>
                 <input type="text" placeholder="ej: Interior, Mayorista, Canelones..." value={newPerfil.nombre} onChange={e => setNewPerfil(p => ({ ...p, nombre: e.target.value }))} style={S.inp} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#666', marginBottom: 5 }}>Descripción (opcional)</label>
+                <label style={labelStyle}>Teléfono</label>
+                <input type="text" placeholder="097 699 854" value={newPerfil.telefono} onChange={e => setNewPerfil(p => ({ ...p, telefono: e.target.value }))} style={S.inp} />
+              </div>
+              <div>
+                <label style={labelStyle}>Descripción (opcional)</label>
                 <input type="text" placeholder="ej: Clientes fuera de Montevideo" value={newPerfil.descripcion} onChange={e => setNewPerfil(p => ({ ...p, descripcion: e.target.value }))} style={S.inp} />
               </div>
               <div style={{ background: '#111', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#555' }}>
